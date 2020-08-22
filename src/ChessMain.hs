@@ -2,5 +2,5 @@ module ChessMain
     ( someFunc
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "Playing on GUI"
+startGUI :: IO ()
+startGUI = putStrLn "Playing on GUI"
