@@ -12,4 +12,3 @@ main = do
          "SHELL" -> Shell.startShell
          "GUI" -> ChessMain.startGUI
          _ -> printErrorMessage "Invalid input!"
-       
