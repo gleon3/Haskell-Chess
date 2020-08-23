@@ -1,4 +1,4 @@
-module Model.Piece (Piece, PieceType, getPlayer, getPieceType) where
+module Model.Piece where
 
 import Data.Char
 

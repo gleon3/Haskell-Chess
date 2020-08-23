@@ -1,22 +1,20 @@
-module Model.Cell
-    ( Cell, getRow, getColumn, formatCell, parseCell, parseRowValue, parseColumnValue, checkValidCellFormat 
-    ) where
+module Model.Cell ( Cell, getRow, getColumn, formatCell, parseCell, parseRowValue, parseColumnValue, checkValidCellFormat ) where
 
 import Data.Char
 
 type Cell = (Int, Int)
 
 getRow :: Cell -> Int
-getRow (_, row) = row
+getRow (row, _) = row
 
 getColumn :: Cell -> Int
-getColumn (col, _) = col
+getColumn (row, col) = col
 
 formatCell :: Cell -> String
-formatCell (col, row) = [chr (97+col), (intToDigit (row + 1))]
+formatCell (row, col) = [chr (97+col), (intToDigit (row + 1))]
 
 parseCell :: String -> Cell
-parseCell s = (parseColumnValue s, parseRowValue s)
+parseCell s = (parseRowValue s, parseColumnValue s)
 
 --A5 -> 4
 parseRowValue :: String -> Int

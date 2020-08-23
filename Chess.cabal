@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6d4a0f29a8b5ba0f282d5a8835e7733b757ad442a463645d1ac2ec9d139ab92a
+-- hash: 8931cffcebaca8faedd49324e40f448ffaa9840070c4e0bcc87c7c6cebb347e5
 
 name:           Chess
 version:        0.1.0.0
@@ -28,6 +28,11 @@ source-repository head
 library
   exposed-modules:
       ChessMain
+      Model.Cell
+      Model.GameField
+      Model.GameState
+      Model.Move
+      Model.Phase
       Model.Piece
       Model.Player
       Shell
@@ -38,6 +43,7 @@ library
   build-depends:
       base >=4.7 && <5
     , gtk3
+    , array
   default-language: Haskell2010
 
 executable Chess-exe

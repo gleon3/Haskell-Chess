@@ -1,6 +1,4 @@
-module Shell
-    ( startShell, printErrorMessage, stringToUpper
-    ) where
+module Shell ( startShell, printErrorMessage, stringToUpper ) where
 
 import Data.Char    
 

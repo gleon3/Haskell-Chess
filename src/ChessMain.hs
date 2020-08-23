@@ -1,6 +1,4 @@
-module ChessMain
-    ( startGUI
-    ) where
+module ChessMain ( startGUI ) where
         
 import Graphics.UI.Gtk
 
