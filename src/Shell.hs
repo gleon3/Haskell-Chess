@@ -2,6 +2,7 @@ module Shell ( startShell, printErrorMessage, stringToUpper ) where
 
 import Data.Char    
 
+import Model.Model
 import Model.Player
     
 error_msg = "Error! "    
@@ -44,8 +45,8 @@ chooseColor = do
 --next action during game! TODO: game as argument
 chooseAction :: IO ()
 chooseAction = do
-    putStrLn "TODO: if gameover -> startShell"
-    putStrLn "TODO: if your turn else startShell"
+    putStrLn "TODO: if gameover (phase != Running...) -> startShell"
+    putStrLn "TODO: if your turn else chooseAction"
     putStr "It's your turn! Type ? for help.> "                  
     input <- getLine
     case stringToUpper input of
@@ -56,6 +57,8 @@ chooseAction = do
          "MOVE" -> do
              putStrLn "TODO: move"
              chooseAction
+         "MOVES" -> do
+             putStrLn "TODO: possible moves"
          _ -> do
              printErrorMessage "Invalid input!"
              chooseAction

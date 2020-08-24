@@ -1,4 +1,4 @@
-module Model.Player ( Player(White, Black), getOpponentOf ) where
+module Model.Player where
 
 data Player = Black
             | White

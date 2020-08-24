@@ -35,6 +35,7 @@ library
       Model.Phase
       Model.Piece
       Model.Player
+      Model.Model
       Shell
   other-modules:
       Paths_Chess
