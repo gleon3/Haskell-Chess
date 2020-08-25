@@ -24,13 +24,12 @@ get :: Cell -> GameField -> Maybe Piece
 get cell field = if not (isWithinBounds cell) then Nothing
                                               else field ! cell
 
-set :: Cell -> Piece -> GameField -> GameField
+set :: Cell -> Maybe Piece -> GameField -> GameField
 set cell piece field = if not (isWithinBounds cell) then field
-                                                    else field // [(cell, Just piece)]
+                                                    else field // [(cell, piece)]
 
 remove :: Cell -> GameField -> GameField
-remove cell field = if not (isWithinBounds cell) then field
-                                                 else field // [(cell, Nothing)]
+remove cell field = set cell Nothing field
 
 isCellOfPlayer :: Cell -> Player -> GameField -> Bool
 isCellOfPlayer cell player field = case (get cell field) of
