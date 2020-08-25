@@ -11,10 +11,10 @@ data GameState = GameState { currentPlayer :: Player, gameField :: GameField, cu
 
 instance Show GameState
     where 
-        show (GameState _ gameField Finished (Just winner) _ _ ) = "Thanks for playing! " ++ "\n" ++ "Player " ++ show winner ++ " has won!\n" ++ toString gameField
-        show (GameState _ gameField Finished Nothing _ _ ) = "Thanks for playing! " ++ "\n" ++ "It's a draw!\n" ++ toString gameField  
-        show (GameState currentPlayer gameField _ _ _ _) = "player to move: " ++ show currentPlayer ++ "\n" ++ toString gameField
-
+        show (GameState _ gameField Finished (Just winner) _ _ ) = "Thanks for playing!\n" ++ "Player " ++ show winner ++ " has won!\n" ++ toString gameField
+        show (GameState _ gameField Finished Nothing _ _ ) = "Thanks for playing! \nIt's a draw!\n" ++ toString gameField  
+        show (GameState currentPlayer gameField _ _ _ castlingFlags) = "player to move: " ++ show currentPlayer ++ " " ++ castlingFlags ++ "\n" ++ toString gameField
+        
 getCurrentPlayer :: GameState -> Player
 getCurrentPlayer state = currentPlayer state
 
@@ -43,6 +43,9 @@ getCastlingFlags state = castlingFlags state
 setCastlingFlags :: GameState -> String -> GameState
 setCastlingFlags state flags = state { castlingFlags = flags }
 
+removeCastle :: GameState -> Char -> GameState
+removeCastle state flag = state { castlingFlags = [x | x <- (getCastlingFlags state), x /= flag] }
+
 getLastDoubleStep :: GameState -> Maybe (Int, Int)
 getLastDoubleStep state = lastDoubleStep state
 
@@ -57,7 +60,7 @@ isChecked player state = case getCellOfPiece (Piece player King) (gameField stat
 
 --checks if a piece on given cell is reachable/attacked by given player
 isAttacked :: Cell -> Player -> GameState -> Bool
-isAttacked cell player state = any (isAttackedByMove cell player state) [possibleMoves | from <- getCellsOfPlayer player (gameField state), possibleMoves <- getPossibleMovesForPiece from state]
+isAttacked cell player state = any (isAttackedByMove cell player state) [possibleMoves | from <- getCellsOfPlayer player (gameField state), possibleMoves <- getPossibleMovesForPieceNC from player state]
 
 isAttackedByMove :: Cell -> Player -> GameState -> Move -> Bool
 isAttackedByMove cell player state (Castle _) = False
@@ -88,17 +91,17 @@ getPossibleMovesForPiece :: Cell -> GameState -> [Move]
 getPossibleMovesForPiece from state | currentPhase state /= Running = [] --when game is not running, there shouldn't be moves possible 
                                     | otherwise =
                                         case get from (gameField state) of
-                                             Just (Piece player King) -> []
+                                             Just (Piece player King) -> getPossibleMovesForPieceNC from player state ++ getCastlingMoves player state --TODO: only if not put  in check
                                              Just (Piece player _) -> if isChecked player state then [] --if checked only king is moveable
-                                                                                                else []
+                                                                                                else getPossibleMovesForPieceNC from player state --TODO: only if not put in check
                                              _ -> [] --when given cell is not of player, there shouldn't be moves possible, maybe give error as this should never be called in program
     where player = currentPlayer state
           
---NC means no check, it doesnt check if the move would put self in check or player is currently in check 
+--NC means no check, it doesnt check if the move would put self in check or player is currently in check (so castling is not included!) 
 getPossibleMovesForPieceNC :: Cell -> Player -> GameState -> [Move]
 getPossibleMovesForPieceNC from player state = 
     case get from (gameField state) of
-         Just (Piece player Pawn) -> []
+         Just (Piece player Pawn) -> map (\to -> Move from to) (getReachablePawn from player setInitialPieces) ++ getSpecialMovesPawn from player state
          Just (Piece player Knight) -> map (\to -> Move from to) (getReachableKnight from player setInitialPieces)
          Just (Piece player Bishop) -> map (\to -> Move from to) (getReachableBishop from player setInitialPieces)
          Just (Piece player Rook) -> map (\to -> Move from to) (getReachableRook from player setInitialPieces)
@@ -108,12 +111,12 @@ getPossibleMovesForPieceNC from player state =
 
 --gets all cells that are reachable (either free or opponent piece) from given cell in given direction
 getReachablePath :: Cell -> Player -> GameField -> Int -> Int -> [Cell]
-getReachablePath from player field x y | not $ isWithinBounds newCell = []
-                                       | otherwise = case get newCell field of
-                                                          Nothing -> [newCell] ++ getReachablePath newCell player field x y
+getReachablePath from player field row col | not $ isWithinBounds newCell = []
+                                           | otherwise = case get newCell field of
+                                                          Nothing -> [newCell] ++ getReachablePath newCell player field row col
                                                           Just piece -> if getPlayer piece == player then []
                                                                                                      else [newCell]
-    where newCell = (getRow from + x, getColumn from + y)
+    where newCell = (getRow from + row, getColumn from + col)
 
 isFree :: Cell -> GameField -> Bool
 isFree cell field = case get cell field of
@@ -138,28 +141,79 @@ getOpponent [] _ _ = []
 getOpponent (h:t) player field | isOpponent h player field = [h] ++ getOpponent t player field
                                | otherwise = getOpponent t player field
 
---gives all cells that would be reachable with bishop from given cell
+--gets all cells that would be reachable with bishop from given cell
 getReachableBishop :: Cell -> Player -> GameField -> [Cell]
 getReachableBishop from player field =  reachInDir 1 1 ++ reachInDir (-1) 1 ++ reachInDir (-1) (-1) ++ reachInDir 1 (-1)
     where reachInDir = getReachablePath from player field
  
---gives all cells that would be reachable with rook from given cell
+--gets all cells that would be reachable with rook from given cell
 getReachableRook :: Cell -> Player -> GameField -> [Cell]
 getReachableRook from player field =  reachInDir 1 0 ++ reachInDir (-1) 0 ++ reachInDir 0 1 ++ reachInDir 0 (-1)
     where reachInDir = getReachablePath from player field
-          
+   
+--gets all cells that would be reachable with queen from given cell
 getReachableQueen :: Cell -> Player -> GameField -> [Cell]
-getReachableQueen from player field = getReachableBishop from player field ++ getReachableQueen from player field
+getReachableQueen from player field = getReachableBishop from player field ++ getReachableRook from player field
 
-getReachablePawn :: Cell -> Player -> GameField -> [Cell]
-getReachablePawn from player field = []
-
+--gets all cells that would be reachable with knight from given cell
 getReachableKnight :: Cell -> Player -> GameField -> [Cell]
 getReachableKnight from player field = getFree possible field ++ getOpponent possible player field
-    where possible = [cell | (x,y) <- list, cell <- [(getRow from + x,getColumn from + y)], isWithinBounds cell]
+    where possible = [cell | (row,col) <- list, cell <- [(getRow from + row,getColumn from + col)], isWithinBounds cell]
           list = [(-2,-1),(-2,1),(2,-1),(2,1),(-1,-2),(-1,2),(1,-2),(1,2)]
 
+--gets all cells that would be reachable with king from given cell - castling is not included
 getReachableKing :: Cell -> Player -> GameField -> [Cell]
 getReachableKing from player field = getFree possible field ++ getOpponent possible player field
-    where possible = [cell | (x,y) <- list, cell <- [(getRow from + x,getColumn from + y)], isWithinBounds cell]
+    where possible = [cell | (row,col) <- list, cell <- [(getRow from + row,getColumn from + col)], isWithinBounds cell]
           list = [(-1,-1),(-1,0),(-1,1),(0,1),(0,-1),(1,-1),(1,0),(1,1)]
+          
+castlingAvailable :: Player -> Bool -> GameState -> Bool
+castlingAvailable White kingside state = if kingside then elem 'K' (getCastlingFlags state)
+                                                     else elem 'Q' (getCastlingFlags state)
+castlingAvailable Black kingside state = if kingside then elem 'k' (getCastlingFlags state)
+                                                     else elem 'q' (getCastlingFlags state)
+                                                     
+getBaseRowIndex :: Player -> Int
+getBaseRowIndex White = 0
+getBaseRowIndex Black = 7
+
+getDirection :: Player -> Int
+getDirection White = 1
+getDirection Black = -1
+                                                     
+--does not check if king would castle into check!
+getCastlingMoves :: Player -> GameState -> [Move]
+getCastlingMoves player state | isChecked player state = []
+                              | canCastleKingside && canCastleQueenside = [Castle True, Castle False]
+                              | canCastleKingside = [Castle True]
+                              | canCastleQueenside = [Castle False]
+                              | otherwise = []
+    where canCastleKingside = castlingAvailableKingside && canMoveThroughKingside && not pathAttackedKingside
+          canCastleQueenside = castlingAvailableQueenside && canMoveThroughQueenside && not pathAttackedQueenside
+          castlingAvailableKingside = castlingAvailable player True state
+          castlingAvailableQueenside = castlingAvailable player False state
+          canMoveThroughKingside = isFree (getBaseRowIndex player, 5) (gameField state) && isFree (getBaseRowIndex player, 6) (gameField state)
+          canMoveThroughQueenside = isFree (getBaseRowIndex player, 3) (gameField state) && isFree (getBaseRowIndex player, 2) (gameField state) && isFree (getBaseRowIndex player, 1) (gameField state)
+          pathAttackedKingside = isAttacked (getBaseRowIndex player, 3) (getOpponentOf player) state
+          pathAttackedQueenside = isAttacked (getBaseRowIndex player, 5) (getOpponentOf player) state
+
+--standard pawn moves, capture diagonally, move horizontally, doesn't include pawn promotion
+getReachablePawn :: Cell -> Player -> GameField -> [Cell]
+getReachablePawn from player field = getFree cellsMove field ++ getOpponent cellsCapture player field
+    where cellsMove = [cell | cell <- [(getRow from + getDirection player, getColumn from)], isWithinBounds cell, getRow cell /= getBaseRowIndex (getOpponentOf player)]
+          cellsCapture = [cell | cell <- [(getRow from + getDirection player, getColumn from + x) | x <- [-1,1]], isWithinBounds cell, getRow cell /= getBaseRowIndex (getOpponentOf player)]
+         
+--special pawn moves include en passant, pawn promotion and double pawn move         
+getSpecialMovesPawn :: Cell -> Player -> GameState -> [Move]
+getSpecialMovesPawn from player state = getEnPassantMoves ++ getDoublePawnMove ++ getPawnPromotion
+    where getDoublePawnMove = [DoubleStepMove from (getRow from + 2*getDirection player, getColumn from) | getRow from == getBaseRowIndex player + getDirection player]
+          getEnPassantMoves = case lastDoubleStep state of
+                                   Nothing -> [] 
+                                   Just cell -> [EnPassant from (getRow cell + getDirection player, getColumn cell) | getRow from == getRow cell, abs(getColumn from - getColumn cell) == 1]
+          getPawnPromotion = [PawnPromotion from to pieceType | to <- getReachablePromoting, pieceType <- [Queen, Knight, Rook, Bishop]]
+          getReachablePromoting = getFree cellsMove (gameField state) ++ getOpponent cellsCapture player (gameField state)
+          cellsMove = [cell | cell <- [(getRow from + getDirection player, getColumn from)], isWithinBounds cell, getRow cell == getBaseRowIndex (getOpponentOf player)]
+          cellsCapture = [cell | cell <- [(getRow from + getDirection player, getColumn from + x) | x <- [-1,1]], isWithinBounds cell, getRow cell == getBaseRowIndex (getOpponentOf player)]
+          
+newGame :: Phase -> GameState
+newGame startingPhase = GameState { currentPlayer = White, gameField = setInitialPieces, currentPhase = startingPhase, winner = Nothing, lastDoubleStep = Nothing, castlingFlags = "KQkq" }
