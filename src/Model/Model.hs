@@ -17,5 +17,8 @@ getState (NetworkChess state _) = state
 getPossibleMovesForPiece :: Cell -> Model -> [Move]
 getPossibleMovesForPiece from model = []
 
+getLegalMoves :: Model -> [Move]
+getLegalMoves model = []
+
 move :: Move -> Model -> Model
 move move model = model

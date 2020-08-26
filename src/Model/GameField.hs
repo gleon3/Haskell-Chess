@@ -12,6 +12,14 @@ type GameField = Array Cell (Maybe Piece)
 
 size = 8
 
+getBaseRowIndex :: Player -> Int
+getBaseRowIndex White = 0
+getBaseRowIndex Black = 7
+
+getDirection :: Player -> Int
+getDirection White = 1
+getDirection Black = -1
+
 --prints GameField human-friendly
 toString :: GameField -> String
 toString field = unlines (zipWith addLineNumber [8,7..1] [unwords [fromMaybe (field ! (row, col)) | col <- [0..7]] | row <- [7,6..0]]) ++ "  a b c d e f g h"
