@@ -8,7 +8,15 @@ data Move = Move Cell Cell
           | EnPassant Cell Cell Cell --from to lastDoubleStep
           | PawnPromotion Cell Cell PieceType
           | Castle { kingside :: Bool }
-          deriving (Eq, Show)
+          deriving (Eq)
+          
+instance Show Move where
+    show (Move from to) = formatCell from ++ formatCell to
+    show (DoubleStepMove from to) = formatCell from ++ formatCell to
+    show (EnPassant from to _) = formatCell from ++ formatCell to ++ "e"
+    show (PawnPromotion from to pieceType) = formatCell from ++ formatCell to ++ show pieceType
+    show (Castle True) = "O-O"
+    show (Castle False) = "O-O-O"
 
 getSourceCell :: Move -> Cell
 getSourceCell (Move from _) = from

@@ -1,0 +1,2 @@
+module Model.AiChess where
+

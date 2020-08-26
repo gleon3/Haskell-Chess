@@ -36,6 +36,7 @@ library
       Model.Piece
       Model.Player
       Model.Model
+      Model.Chess
       Shell
   other-modules:
       Paths_Chess
