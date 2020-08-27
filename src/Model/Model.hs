@@ -39,8 +39,9 @@ isYourTurn (NetworkChess state player) = if currentPlayer state == player then T
 isYourTurn _ = True
 
 getPossibleMovesForPiece :: Cell -> Model -> [Move]
-getPossibleMovesForPiece from model = if isYourTurn model then Chess.getPossibleMovesForPiece from (getState model)
+getPossibleMovesForPiece from model = if isYourTurn model then Chess.getPossibleMovesForPiece (currentPlayer state) from state
                                                           else []
+    where state = getState model
 
 getLegalMoves :: Model -> [Move]
 getLegalMoves model = if isYourTurn model then Chess.getLegalMovesForPlayer (currentPlayer state) state
@@ -48,17 +49,10 @@ getLegalMoves model = if isYourTurn model then Chess.getLegalMovesForPlayer (cur
     where state = getState model
 
 move :: Move -> Model -> Either Model MoveError
-move move (Chess state) =  case Chess.move move state of
-                                Left newState -> Left (Chess newState)
-                                Right err -> Right err
-move move (AiChess state player) | currentPlayer state == player = case Chess.move move state of
-                                                                        Left newState -> Left (AiChess newState player)
-                                                                        Right err -> Right err
-                                 | otherwise = Right NotYourTurn
-move move (NetworkChess state player) | currentPlayer state == player = case Chess.move move state of
-                                                                             Left newState -> Left (NetworkChess newState player)
-                                                                             Right err -> Right err
-                                      | otherwise = Right NotYourTurn
-                                      
+move move model | isYourTurn model = case Chess.move move (getState model) of
+                                          Left newState -> Left (setState newState model)
+                                          Right err -> Right err
+                | otherwise = Right NotYourTurn
+
 executeMove :: Move -> Model -> Model
 executeMove move model = setState (Chess.executeMove move (getState model)) model

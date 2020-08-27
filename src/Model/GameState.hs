@@ -11,7 +11,7 @@ data GameState = GameState { currentPlayer :: Player, gameField :: GameField, cu
 
 instance Show GameState
     where 
-        show (GameState _ gameField Finished (Just winner) _ _ ) = "Thanks for playing!\n" ++ "Player " ++ show winner ++ " has won!\n" ++ toString gameField
+        show (GameState _ gameField Finished (Just winner) _ _ ) = "Thanks for playing!\n" ++ "Player " ++ show winner ++ " has won!\n" ++ toString gameField 
         show (GameState _ gameField Finished Nothing _ _ ) = "Thanks for playing! \nIt's a draw!\n" ++ toString gameField  
         show (GameState currentPlayer gameField _ _ _ castlingFlags) = "player to move: " ++ show currentPlayer ++ " " ++ castlingFlags ++ "\n" ++ toString gameField
         
@@ -73,16 +73,16 @@ isChecked :: Player -> GameState -> Bool
 isChecked player state = case getCellOfPiece (Piece player King) (gameField state) of
                               Nothing -> False --King doesn't exist, which should never happen, as game ends once king is in checkmate!
                               Just kingCell -> if isAttacked kingCell (getOpponentOf player) state then True
-                                                                                                   else False
+                                                                                                   else False 
 
 --gets the type of move for a move from a cell to another cell, even for absurd moves, which would be sorted out in move function! 
 getTypeOfMove :: Cell -> Cell -> GameState -> Move
 getTypeOfMove from to state | fromIsPawn && getRow to == getBaseRowIndex (getOpponentOf (currentPlayer state)) = PawnPromotion from to Queen--Queen is a placeholder as player still has to choose promotionpiece
+                            | fromIsPawn && abs (getRow from - getRow to) == 2 = DoubleStepMove from to
                             | fromIsPawn = case lastDoubleStep state of
-                                                Just cell -> if getRow to == getRow cell - getDirection (currentPlayer state) && getColumn to == getColumn cell then EnPassant from to cell
+                                                Just cell -> if getRow to == getRow cell + getDirection (currentPlayer state) && getColumn to == getColumn cell then EnPassant from to cell
                                                                                                                                                                 else Move from to
                                                 _ -> Move from to 
-                            | fromIsPawn && abs (getRow from - getRow to) == 2 = DoubleStepMove from to
                             | fromIsKing && from == castleSource && to == castleTargetKingside = Castle True
                             | fromIsKing && from == castleSource && to == castleTargetQueenside = Castle False
                             | otherwise = Move from to
@@ -96,12 +96,12 @@ getTypeOfMove from to state | fromIsPawn && getRow to == getBaseRowIndex (getOpp
 getPossibleMovesForPieceNC :: Cell -> Player -> GameState -> [Move]
 getPossibleMovesForPieceNC from player state = 
     case get from (gameField state) of
-         Just (Piece player Pawn) -> map (\to -> Move from to) (getReachablePawn from player setInitialPieces) ++ getSpecialMovesPawn from player state
-         Just (Piece player Knight) -> map (\to -> Move from to) (getReachableKnight from player setInitialPieces)
-         Just (Piece player Bishop) -> map (\to -> Move from to) (getReachableBishop from player setInitialPieces)
-         Just (Piece player Rook) -> map (\to -> Move from to) (getReachableRook from player setInitialPieces)
-         Just (Piece player Queen) -> map (\to -> Move from to) (getReachableQueen from player setInitialPieces)
-         Just (Piece player King) ->  map (\to -> Move from to) (getReachableKing from player setInitialPieces)
+         Just (Piece player Pawn) -> map (\to -> Move from to) (getReachablePawn from player (gameField state)) ++ getSpecialMovesPawn from player state
+         Just (Piece player Knight) -> map (\to -> Move from to) (getReachableKnight from player (gameField state))
+         Just (Piece player Bishop) -> map (\to -> Move from to) (getReachableBishop from player (gameField state))
+         Just (Piece player Rook) -> map (\to -> Move from to) (getReachableRook from player (gameField state))
+         Just (Piece player Queen) -> map (\to -> Move from to) (getReachableQueen from player (gameField state))
+         Just (Piece player King) ->  map (\to -> Move from to) (getReachableKing from player (gameField state))
          _ -> []
 
 --gets all cells that are reachable (either free or opponent piece) from given cell in given direction

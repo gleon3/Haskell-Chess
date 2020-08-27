@@ -37,6 +37,9 @@ library
       Model.Player
       Model.Model
       Model.Chess
+      Model.AiChess
+      Model.Ai.StateAssessor
+      Model.Ai.PieceAmountAssessor
       Shell
   other-modules:
       Paths_Chess
