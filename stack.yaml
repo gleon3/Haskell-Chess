@@ -41,6 +41,7 @@ extra-deps:
 - glib-0.13.8.1@sha256:42670daf0c85309281e08ba8559df75daa2e3be642e79fdfa781bef5e59658b0,3156
 - gtk2hs-buildtools-0.13.8.0@sha256:132f38155fc677430a47ea750918973161c876fb6f281d342ac2f07eb99229ce,5238
 - pango-0.13.8.1@sha256:877b121c0bf87c96d3619effae6751ecfd74b7f7f3227cf3fde012597aed5ed9,3917
+- svgcairo-0.13.2.1@sha256:64aff3bb527aa484256b8c04c6469185ba307c7bd48ecb663103eff61ffa1c4b,1702
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #

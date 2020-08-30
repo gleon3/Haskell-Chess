@@ -46,6 +46,13 @@ packages:
       sha256: eec456a3d16f1a9305196a86a7c49a6f2cfe1b041a50b02059dc4898a07a3bd9
   original:
     hackage: pango-0.13.8.1@sha256:877b121c0bf87c96d3619effae6751ecfd74b7f7f3227cf3fde012597aed5ed9,3917
+- completed:
+    hackage: svgcairo-0.13.2.1@sha256:64aff3bb527aa484256b8c04c6469185ba307c7bd48ecb663103eff61ffa1c4b,1702
+    pantry-tree:
+      size: 441
+      sha256: 34427d29215338e4aa56f8b29edec5d7c22809741b4993e23a9252d5d8d17c97
+  original:
+    hackage: svgcairo-0.13.2.1@sha256:64aff3bb527aa484256b8c04c6469185ba307c7bd48ecb663103eff61ffa1c4b,1702
 snapshots:
 - completed:
     size: 532383
