@@ -3,6 +3,9 @@ module View.StartView where
 import Graphics.UI.Gtk
 
 import View.ChessView
+import Model.Model
+import Model.Phase
+import Model.Player
 
 showMenu :: IO ()
 showMenu = do
@@ -30,8 +33,7 @@ showMenu = do
     set buttonNetwork [ buttonLabel := "Network" ]
     entrySetText serverAdress "127.0.0.1"
     
-    on buttonHotseat buttonActivated $ do
-        showModelNew 
+    on buttonHotseat buttonActivated (setupBoard (newChess Running))
     on buttonSingle buttonActivated $ do
         playerDialog <- windowNew
         set playerDialog [windowTitle := "Choose Color", windowDefaultHeight := 100, windowDefaultWidth := 200, windowModal := True]
@@ -52,8 +54,8 @@ showMenu = do
         containerAdd vbox buttonWhite
         containerAdd vbox buttonBlack
         
-        on buttonWhite buttonActivated (putStrLn "White")
-        on buttonBlack buttonActivated (putStrLn "Black")
+        on buttonWhite buttonActivated (setupBoard (newAiChess Running White))
+        on buttonBlack buttonActivated (setupBoard (newAiChess Running Black))
         
         widgetShowAll playerDialog
     on buttonNetwork buttonActivated $ do

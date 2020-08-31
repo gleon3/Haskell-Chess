@@ -49,6 +49,7 @@ nextTurn state | isCheckmate opponent state = state { winner = Just (currentPlay
 
 --performs move, doesnt check if valid, change to next turn
 performMove :: Move -> GameState -> GameState
+performMove (DoubleStepMove from to) state = (nextTurn $ executeMove (DoubleStepMove from to) state) { lastDoubleStep = Just to }
 performMove move state = nextTurn $ executeMove move state
     
 movePieceNormal :: Cell -> Cell -> GameState -> GameState
@@ -62,9 +63,11 @@ executeMove (Move from to) state
              0 -> removeCastle False (currentPlayer state) $ movePieceNormal from to state
              7 -> removeCastle True (currentPlayer state) $ movePieceNormal from to state
              _ -> movePieceNormal from to state
+    | getRow from == getBaseRowIndex (currentPlayer state) && get from (gameField state) == Just (Piece (currentPlayer state) King) && getColumn from == 4 
+    = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ movePieceNormal from to state
     | otherwise = movePieceNormal from to state
-executeMove (DoubleStepMove from to) state = (movePieceNormal from to state) { lastDoubleStep = Just to }
-executeMove (EnPassant from to lastDoubleStep) state = (movePieceNormal from to state) { gameField = remove lastDoubleStep (gameField state) }
+executeMove (DoubleStepMove from to) state = movePieceNormal from to state
+executeMove (EnPassant from to lastDoubleStep) state = state { gameField = remove lastDoubleStep (gameField $ movePieceNormal from to state ) }
 executeMove (PawnPromotion from to pieceType) state = state { gameField = set to (Just $ Piece (currentPlayer state) pieceType) $ remove from (gameField state) }
 executeMove (Castle kingside) state | kingside = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ rookMoveKingside $ kingMoveKingside state
                                     | otherwise = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ rookMoveQueenside $ kingMoveQueenside state
@@ -84,9 +87,8 @@ getPossibleMovesForPiece player from state | currentPhase state /= Running = [] 
                                                case get from (gameField state) of
                                                     Just (Piece _ King) -> let moves = getPossibleMovesForPieceNC from player state ++ getCastlingMoves player state
                                                                            in [x | x <- moves, not $ movePutsInCheck player x state ]
-                                                    Just (Piece _ _) -> if isChecked player state then [] --if checked only king is moveable
-                                                                                                  else let moves = getPossibleMovesForPieceNC from player state
-                                                                                                       in [x | x <- moves, not $ movePutsInCheck player x state ]
+                                                    Just (Piece _ _) -> let moves = getPossibleMovesForPieceNC from player state
+                                                                        in [x | x <- moves, not $ movePutsInCheck player x state ]
                                                     _ -> [] --when given cell is not of player, there shouldn't be moves possible
                                                     
 movePutsInCheck :: Player -> Move -> GameState -> Bool

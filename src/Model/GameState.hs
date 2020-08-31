@@ -193,7 +193,7 @@ getReachablePawn from player field = getFree cellsMove field ++ getOpponent cell
 --special pawn moves include en passant, pawn promotion and double pawn move         
 getSpecialMovesPawn :: Cell -> Player -> GameState -> [Move]
 getSpecialMovesPawn from player state = getEnPassantMoves ++ getDoublePawnMove ++ getPawnPromotion
-    where getDoublePawnMove = [DoubleStepMove from (getRow from + 2*getDirection player, getColumn from) | getRow from == getBaseRowIndex player + getDirection player]
+    where getDoublePawnMove = [DoubleStepMove from (getRow from + 2*getDirection player, getColumn from) | getRow from == getBaseRowIndex player + getDirection player, isFree (getRow from + getDirection player, getColumn from) (gameField state), isFree (getRow from + 2*getDirection player, getColumn from) (gameField state)]
           getEnPassantMoves = case lastDoubleStep state of
                                    Nothing -> [] 
                                    Just cell -> [EnPassant from (getRow cell + getDirection player, getColumn cell) cell | getRow from == getRow cell, abs(getColumn from - getColumn cell) == 1]

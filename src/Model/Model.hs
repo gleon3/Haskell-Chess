@@ -55,4 +55,4 @@ move move model | isYourTurn model = case Chess.move move (getState model) of
                 | otherwise = Right NotYourTurn
 
 executeMove :: Move -> Model -> Model
-executeMove move model = setState (Chess.executeMove move (getState model)) model
+executeMove move model = setState (Chess.performMove move (getState model)) model
