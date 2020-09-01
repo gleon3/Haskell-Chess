@@ -29,7 +29,6 @@ initGUIState (NetworkChess _ player) = newIORef $ GUIState { selectedCell = Noth
 
 setupBoard :: Model -> IO ()
 setupBoard model = do
-    --TODO: handle game ended! handle pawn promotion
     initGUI
     window <- windowNew
     
@@ -40,7 +39,6 @@ setupBoard model = do
     set window [containerBorderWidth := 0, windowTitle := "Chess", containerChild := canvas, windowDefaultHeight := 700, windowDefaultWidth := 700]
     
     on canvas draw $ do
-        
         width <- liftIO $ widgetGetAllocatedWidth canvas
         height <- liftIO $ widgetGetAllocatedHeight canvas
         
@@ -54,8 +52,9 @@ setupBoard model = do
             if isYourTurn curModel 
                then case currentSelected of 
                          Just cell -> do
-                             setSourceRGB 0.0 0.0 0.75
+                             setSourceRGB 0.4 0.4 0.25
                              drawSquare cell cellSize
+                             setSourceRGB 0.51 0.6 0.41
                              drawMoves (getPossibleMovesForPiece cell curModel) cellSize
                          Nothing -> return ()              
                else return ()
@@ -72,48 +71,91 @@ setupBoard model = do
             --draw all pieces on the board
             drawPieces (gameField (getState curModel)) cellSize
                     
-            --if game finished show it to player!
-            if (currentPhase $ getState curModel) == Finished then liftIO $ putStrLn "TODO: do end game dialog"
-                                                              else return ()
+
             if not $ isYourTurn curModel 
                then do 
                    liftIO $ modifyIORef stateRef $ \state -> case (currentModel state) of 
                                                                   AiChess _ _ -> case getAiMove 3 True (getState (currentModel state)) of
                                                                                       Just move -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
-                                                                                      Nothing -> state 
+                                                                                      Nothing -> state --maybe add error message
                                                                   _ -> state
                    liftIO $ widgetQueueDraw canvas 
                else return ()
             
                                                                 
     on canvas buttonPressEvent $ do
-        width <- liftIO $ widgetGetAllocatedWidth canvas
-        height <- liftIO $ widgetGetAllocatedHeight canvas
+        liftIO (readIORef stateRef) >>= \GUIState { selectedCell = currentSelected, currentModel = curModel } ->
+            if (currentPhase $ getState curModel) == Running 
+               then do
+                   width <- liftIO $ widgetGetAllocatedWidth canvas
+                   height <- liftIO $ widgetGetAllocatedHeight canvas
+                   
+                   button <- eventButton
+                   (x,y) <- eventCoordinates
+                   
+                   let cellSize' = min ((fromIntegral width)/(fromIntegral size)) ((fromIntegral height)/(fromIntegral size))
+                       cellSize = round cellSize'
+                       cell = (7-(floor $ y/(fromIntegral cellSize)),(floor $ x/(fromIntegral cellSize)))
+                   
+                   case currentSelected of
+                        Nothing ->  if get cell (gameField $ getState curModel) == Nothing
+                                    then liftIO $ modifyIORef stateRef $ \state -> state { selectedCell = Nothing }
+                                    else liftIO $ modifyIORef stateRef $ \state -> state { selectedCell = Just cell }
+                        Just selected -> case find (\move -> getTargetCell move == cell) (getPossibleMovesForPiece selected curModel) of
+                                            Just (PawnPromotion from to _) -> do
+                                                dialog <- liftIO $ messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageQuestion ButtonsNone "Which piece do you want to promote to?"
+                                                liftIO $ dialogAddButton dialog "Queen" (ResponseUser 0)
+                                                liftIO $ dialogAddButton dialog "Rook" (ResponseUser 1)
+                                                liftIO $ dialogAddButton dialog "Bishop" (ResponseUser 2)
+                                                liftIO $ dialogAddButton dialog "Knight" (ResponseUser 3)
+                                                liftIO $ set dialog [windowTitle := "PawnPromotion"]
+                                                result <- liftIO $ dialogRun dialog
+                                                liftIO $ widgetDestroy dialog
+                                                case result of
+                                                   ResponseUser 0 -> liftIO $ modifyIORef stateRef $ 
+                                                       \state -> state { selectedCell = Nothing, currentModel = executeMove (PawnPromotion from to Queen) (currentModel state) }
+                                                   ResponseUser 1 -> liftIO $ modifyIORef stateRef $ 
+                                                       \state -> state { selectedCell = Nothing, currentModel = executeMove (PawnPromotion from to Rook) (currentModel state) }
+                                                   ResponseUser 2 -> liftIO $ modifyIORef stateRef $ 
+                                                       \state -> state { selectedCell = Nothing, currentModel = executeMove (PawnPromotion from to Bishop) (currentModel state) }
+                                                   ResponseUser 3 -> liftIO $ modifyIORef stateRef $ 
+                                                       \state -> state { selectedCell = Nothing, currentModel = executeMove (PawnPromotion from to Knight) (currentModel state) }
+                                                   ResponseUser _ -> error "unhandled response"
+                                                   _ -> liftIO $ modifyIORef stateRef $ \state -> state { currentModel = executeMove (PawnPromotion from to Queen) (currentModel state), selectedCell = Nothing }
+                                            Just move -> liftIO $ modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
+                                            _ -> if get cell (gameField $ getState curModel) == Nothing
+                                                    then liftIO $ modifyIORef stateRef $ \state -> state { selectedCell = Nothing }
+                                                    else liftIO $ modifyIORef stateRef $ \state -> state { selectedCell = Just cell }
+                   
+                   liftIO $ widgetQueueDraw canvas
+                   
+                   --read new state and check if game ended after making move and give dialog
+                   liftIO (readIORef stateRef) >>= \GUIState { selectedCell = newCurrentSelected, currentModel = newCurModel } -> 
+                        if (currentPhase $ getState newCurModel) == Finished 
+                           then do 
+                               dialog <- liftIO $ messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageInfo ButtonsClose "Game over!"
+                               case winner $ getState newCurModel of
+                                    Just player -> liftIO $ messageDialogSetMarkup dialog ("Game over! " ++ show player ++ " has won!")
+                                    Nothing -> liftIO $ messageDialogSetMarkup dialog "Game over! It's a draw!"
+                               liftIO $ set dialog [windowTitle := "Game over"]
+                               result <- liftIO $ dialogRun dialog
+                               
+                               --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
+                               liftIO $ widgetDestroy window
+                           else return ()
+                   
+                   return True
+               else return False
         
-        let cellSize' = min ((fromIntegral width)/(fromIntegral size)) ((fromIntegral height)/(fromIntegral size))
-            cellSize = round cellSize'
-        
-        button <- eventButton
-        (x,y) <- eventCoordinates
-        
-        let cell = (7-(floor $ y/(fromIntegral cellSize)),(floor $ x/(fromIntegral cellSize)))
-        
-        liftIO $ modifyIORef stateRef $ \state -> case selectedCell state of
-                                                       Nothing -> if get cell (gameField $ getState (currentModel state)) == Nothing
-                                                                     then state { selectedCell = Nothing }
-                                                                     else state { selectedCell = Just cell }
-                                                       Just selected -> case find (\move -> getTargetCell move == cell) (getPossibleMovesForPiece selected (currentModel state)) of 
-                                                                             Nothing -> if get cell (gameField $ getState (currentModel state)) == Nothing
-                                                                                           then state { selectedCell = Nothing }
-                                                                                           else state { selectedCell = Just cell }
-                                                                             Just move -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
-                                                                             
-        liftIO $ widgetQueueDraw canvas
-        return False
+    --on canvas motionNotifyEvent $ do
+    --    maybe add hoveredCell
     
     widgetShowAll window
     on window objectDestroy mainQuit
     mainGUI
+    
+test :: a -> IO () -> Int
+test a b = 3
     
 drawPiece :: Piece -> Cell -> Int -> Render ()
 drawPiece piece (row, col) cellSize = do
@@ -122,7 +164,6 @@ drawPiece piece (row, col) cellSize = do
     save
     translate (fromIntegral (col*cellSize)) (fromIntegral ((7-row)*cellSize))
     scale ((fromIntegral cellSize) / (fromIntegral width)) ((fromIntegral cellSize) / (fromIntegral height))
-    setSourceRGB 1.0 1.0 1.0
     svgRender piecesvg
     restore
 
@@ -157,6 +198,11 @@ drawSquare :: Cell -> Int -> Render ()
 drawSquare (row,col) cellSize = do
     rectangle (fromIntegral (col*cellSize)) (fromIntegral ((7-row)*cellSize)) (fromIntegral cellSize) (fromIntegral cellSize)
     fill
+
+drawSquareOutline :: Cell -> Int -> Render ()
+drawSquareOutline (row,col) cellSize = do
+    rectangle (fromIntegral (col*cellSize)) (fromIntegral ((7-row)*cellSize)) (fromIntegral cellSize) (fromIntegral cellSize)
+    stroke
     
 drawBoard :: Int -> Render ()
 drawBoard cellSize = do
@@ -175,4 +221,4 @@ drawBoard cellSize = do
                        forM_ [0..3] (\x -> drawSquare (1+x*2,i) cellSize)
 
 drawMoves :: [Move] -> Int -> Render ()
-drawMoves moves cellSize = forM_ moves (\move -> drawCircle (getTargetCell move) cellSize)
+drawMoves moves cellSize = forM_ moves (\move -> drawSquare (getTargetCell move) cellSize)

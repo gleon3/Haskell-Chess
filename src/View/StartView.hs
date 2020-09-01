@@ -35,29 +35,19 @@ showMenu = do
     
     on buttonHotseat buttonActivated (setupBoard (newChess Running))
     on buttonSingle buttonActivated $ do
-        playerDialog <- windowNew
-        set playerDialog [windowTitle := "Choose Color", windowDefaultHeight := 100, windowDefaultWidth := 200, windowModal := True]
-        windowSetTypeHint playerDialog WindowTypeHintDialog
+        dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageQuestion ButtonsNone "Which color do you want to play as?"
+        dialogAddButton dialog "White" (ResponseUser 0)
+        dialogAddButton dialog "Black" (ResponseUser 1)
+        set dialog [windowTitle := "Choose color"]
+        result <- dialogRun dialog
+        widgetDestroy dialog
         
-        vbox <- vBoxNew False 5
-        
-        containerAdd playerDialog vbox
-        
-        question <- labelNew (Just "Choose your color!")
-        buttonWhite <- buttonNew
-        buttonBlack <- buttonNew
-        
-        set buttonWhite [ buttonLabel := "White" ]
-        set buttonBlack [ buttonLabel := "Black" ]
-        
-        containerAdd vbox question
-        containerAdd vbox buttonWhite
-        containerAdd vbox buttonBlack
-        
-        on buttonWhite buttonActivated (setupBoard (newAiChess Running White))
-        on buttonBlack buttonActivated (setupBoard (newAiChess Running Black))
-        
-        widgetShowAll playerDialog
+        case result of
+             ResponseUser 0 -> setupBoard (newAiChess Running White)
+             ResponseUser 1 -> setupBoard (newAiChess Running Black)
+             ResponseUser _ -> error "unhandled response"
+             _ -> return ()
+             
     on buttonNetwork buttonActivated $ do
         txt <- entryGetText serverAdress
         putStrLn txt

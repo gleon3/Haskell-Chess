@@ -70,7 +70,7 @@ chooseAction model = if not $ isYourTurn model
                             case model of
                                  AiChess _ _ -> do
                                      putStrLn "Ai thinking..."
-                                     case getAiMove 2 True (getState model) of
+                                     case getAiMove 3 True (getState model) of
                                           Just move -> do
                                               putStrLn $ "Ai move: " ++ show move
                                               stateUpdate $ executeMove move model
@@ -106,7 +106,7 @@ chooseAction model = if not $ isYourTurn model
                                            then let from = parseCell $ fst moveInputCells
                                                     to = parseCell $ snd moveInputCells
                                                     moveType = getTypeOfMove from to (getState model)
-                                                in case moveType  of
+                                                in case moveType of
                                                         PawnPromotion from to _ -> case move (PawnPromotion from to Queen) model of
                                                                                         Left newModel -> do
                                                                                             putStrLn "Choose piece to promote to! [Queen/Rook/Bishop/Knight]"

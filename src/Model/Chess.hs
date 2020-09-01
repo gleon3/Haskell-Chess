@@ -42,8 +42,8 @@ move move state | currentPhase state /= Running = Right NoGameRunning
           
 --checks for winning condition, resets lastDoubleStep, swap current player
 nextTurn :: GameState -> GameState
-nextTurn state | isCheckmate opponent state = state { winner = Just (currentPlayer state), currentPhase = Finished } 
-               | isStalemate opponent state = state { winner = Nothing, currentPhase = Finished } 
+nextTurn state | isCheckmate opponent state = state { currentPlayer = opponent, winner = Just (currentPlayer state), currentPhase = Finished } 
+               | isStalemate opponent state = state { currentPlayer = opponent, winner = Nothing, currentPhase = Finished } 
                | otherwise = state { currentPlayer = opponent, lastDoubleStep = Nothing }
     where opponent = getOpponentOf (currentPlayer state)
 
