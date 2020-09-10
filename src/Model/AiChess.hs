@@ -19,7 +19,7 @@ getAiMove depth maximizingPlayer state = let possibleMoves = getLegalMovesForPla
                                                                                                                else miniMaxMove (tail possibleMoves) depth maximizingPlayer state bestValue bestMove
 
 miniMax :: Int -> Bool -> GameState -> Float
-miniMax depth maximizingPlayer state = let children = [executeMove x state | x <- getLegalMovesForPlayer (currentPlayer state) state] 
+miniMax depth maximizingPlayer state = let children = [performMove x state | x <- getLegalMovesForPlayer (currentPlayer state) state] 
                                        in if depth == 0 || isStalemate (currentPlayer state) state || isCheckmate (currentPlayer state) state
                                               then computeValue state
                                               else if maximizingPlayer then maximum (map (miniMax (depth-1) False) children)

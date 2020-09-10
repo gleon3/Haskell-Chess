@@ -8,10 +8,8 @@ import qualified Data.ByteString.Char8 as C
 import Control.Concurrent
 import Control.Monad
 
-import qualified Control.Exception as E
-
 --TODO: error handling
-main :: HostName -> String -> IO ()
+main :: HostName -> String -> IO (Socket)
 main hostname port = withSocketsDo $ do
     --create server address
     addrinfos <- getAddrInfo Nothing (Just hostname) (Just port)
@@ -21,15 +19,45 @@ main hostname port = withSocketsDo $ do
     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
     setSocketOption sock KeepAlive 1
 
-    --connec tto server
+    --connect to server
     connect sock (addrAddress serveraddr)
     
-    E.finally (listenToServer sock) (putStr "hi")
-    return ()
+    return sock
     
-listenToServer :: Socket -> IO ()
-listenToServer sock = do
-    forever $ do
-        clientIn <- recv sock 1024
-        putStr "received: "
-        C.putStrLn clientIn
+listenToServer :: Socket -> IO (String,String)
+listenToServer sock = forever $ do
+        clientIn <- recv sock 4096
+
+        if not $ C.null clientIn 
+           then do
+               putStr "received: "
+               C.putStrLn clientIn
+               
+                
+               let clientInString = C.unpack clientIn
+                   command = head $ words clientInString
+                   argument = concat $ tail $ words clientInString
+               
+               return (command,argument)
+           else return ("","")
+                 
+waitForMessage :: Socket -> String -> IO (String,String)
+waitForMessage sock msg = do
+    clientIn <- recv sock 4096
+    
+    if not $ C.null clientIn 
+       then do
+           let clientInString = C.unpack clientIn
+               command = head $ words clientInString
+               arguments = concat $ tail $ words clientInString
+               
+           if command == msg then return (command,arguments)
+                             else waitForMessage sock msg
+       else do
+           --server dc do error handling
+           return ("","")
+           
+                 
+sendMessage :: Socket -> String -> IO ()
+sendMessage sock message = do
+    sendAll sock (C.pack message)

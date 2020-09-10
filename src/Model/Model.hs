@@ -6,11 +6,13 @@ import Model.GameState
 import Model.Player
 import Model.Phase
 
+import Network.Socket
+
 import Model.Chess as Chess
 
 data Model = Chess GameState
            | AiChess GameState Player
-           | NetworkChess GameState Player
+           | NetworkChess GameState Player Socket
   
 newChess :: Phase -> Model
 newChess phase = Chess (newGame phase)
@@ -18,24 +20,24 @@ newChess phase = Chess (newGame phase)
 newAiChess :: Phase -> Player -> Model
 newAiChess phase player = AiChess (newGame phase) player
 
-newNetworkChess :: Phase -> Player -> Model
-newNetworkChess phase player = NetworkChess (newGame phase) player
+newNetworkChess :: Phase -> Player -> (Socket -> Model)
+newNetworkChess phase player = NetworkChess (newGame phase) player --socket will be defined in io
 
 getState :: Model -> GameState
 getState (Chess state) = state
 getState (AiChess state _) = state
-getState (NetworkChess state _) = state
+getState (NetworkChess state _ _) = state
 
 setState :: GameState -> Model -> Model
 setState newState (Chess state) = Chess newState
 setState newState (AiChess state player) = AiChess newState player
-setState newState (NetworkChess state player) = NetworkChess newState player
+setState newState (NetworkChess state player socket) = NetworkChess newState player socket
 
 isYourTurn :: Model -> Bool
 isYourTurn (AiChess state player) = if currentPlayer state == player then True
                                                                      else False
-isYourTurn (NetworkChess state player) = if currentPlayer state == player then True
-                                                                          else False
+isYourTurn (NetworkChess state player _) = if currentPlayer state == player then True
+                                                                            else False
 isYourTurn _ = True
 
 getPossibleMovesForPiece :: Cell -> Model -> [Move]
