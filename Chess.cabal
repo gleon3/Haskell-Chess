@@ -41,6 +41,7 @@ library
       Model.AiChess
       Model.Ai.StateAssessor
       Model.Ai.PieceAmountAssessor
+      Model.Ai.WinAssessor
       Model.Client
       View.LobbyView
       View.StartView

@@ -67,6 +67,16 @@ setInitialPieces = emptyField // (row0++row1++row6++row7)
         emptyField = array bound [(i,Nothing)|i<-range bound]
         bound = ((0,0),(size-1, size-1))
         
+setInitialPieces2 :: GameField
+setInitialPieces2 = emptyField // (row0++row7)
+    where
+        row0 = rowList 0 White [Rook, Knight, Bishop, Queen, King , Knight, Rook]
+        row7 = rowList 7 Black [Rook, Knight, Bishop, Queen, King , Bishop, Knight, Rook]
+        rowList row player list = zip (range ((row,0),(row,7))) (map(\t->Just(Piece player t)) list)
+        emptyField = array bound [(i,Nothing)|i<-range bound]
+        bound = ((0,0),(size-1, size-1))
+        
+        
 --removes piece from initial square and sets it to target square
 movePiece :: Cell -> Cell -> GameField -> GameField
 movePiece from to field = set to (get from field) $ remove from field

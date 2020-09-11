@@ -4,9 +4,6 @@ import Graphics.Rendering.Cairo
 import Graphics.Rendering.Cairo.SVG
 import Graphics.UI.Gtk hiding (rectangle,get)
 
-import qualified Data.ByteString.Char8 as C
-import Network.Socket.ByteString
-
 import Model.Model
 import Model.AiChess
 import Model.GameState
@@ -34,6 +31,8 @@ setupBoard model = do
     --TODO: exit handling close window etc.
     initGUI
     window <- windowNew
+
+    exit <- newEmptyMVar
     
     stateRef <- initGUIState model
     
@@ -143,73 +142,93 @@ setupBoard model = do
                else return False
   
     --keeps track of if game finished
-    forkIO $ forever $ do
-        state <- readIORef stateRef
-        if (currentPhase $ getState $ currentModel state) /= Finished
-           then putStr "" --do nothing, return (), when, unless freeze program
-           else postGUISync $ do
+    forkIO $
+        let handleFinished = do
+                exit' <- tryTakeMVar exit
     
-               dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageInfo ButtonsClose "Game over!"
-               
-               case winner $ getState $ currentModel state of
-                    Just player -> messageDialogSetMarkup dialog ("Game over! " ++ show player ++ " has won!")
-                    Nothing -> messageDialogSetMarkup dialog "Game over! It's a draw!"
-                    
-               set dialog [windowTitle := "Game over"]
-               
-               result <- dialogRun dialog
-               
-               --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
-               widgetDestroy window
+                if exit' == Just True 
+                   then return ()
+                   else do
+                       state <- readIORef stateRef
+                       if (currentPhase $ getState $ currentModel state) /= Finished
+                          then handleFinished
+                          else postGUISync $ do
+                              dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageInfo ButtonsClose "Game over!"
+                              
+                              case winner $ getState $ currentModel state of
+                                   Just player -> messageDialogSetMarkup dialog ("Game over! " ++ show player ++ " has won!")
+                                   Nothing -> messageDialogSetMarkup dialog "Game over! It's a draw!"
+                                   
+                              set dialog [windowTitle := "Game over"]
+                              result <- dialogRun dialog
+                              
+                              --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
+                              widgetDestroy window
+                              handleFinished
+        in handleFinished
     
     case model of
-         AiChess _ _ -> forkIO $ forever $ do --handles AI moves
-             state <- readIORef stateRef
-             if isYourTurn $ currentModel state then putStr "" --do nothing, return (), when, unless freeze program
-                                                else do
-                                                    let stateAiMove = case getAiMove 3 True (getState (currentModel state)) of
-                                                                           Just move -> state { currentModel = executeMove move (currentModel state) }
-                                                                           Nothing -> state --maybe add error message
-                                                    putStrLn $ show $ getState $ currentModel stateAiMove
-                                                    writeIORef stateRef stateAiMove
-                                                    postGUIAsync $ widgetQueueDraw canvas
-         NetworkChess _ player sock -> forkIO $ forever $ do
-             clientIn <- recv sock 4096
-             
-             if C.null clientIn 
-                then putStr ""
-                else do 
-                    putStr "received: "
-                    C.putStrLn clientIn
+         AiChess _ player -> forkIO $
+             let handleAi = do
+                    exit' <- tryTakeMVar exit
                     
-                    let clientInString = C.unpack clientIn
-                        command = head $ words clientInString
-                        argument = concat $ tail $ words clientInString
-                        
-                    case command of
-                         --opponent joined game
-                         "start" -> do
-                             modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = newNetworkChess Running player sock }
-                             postGUIAsync $ widgetQueueDraw canvas
-                         --opponent made move
-                         "move" -> do
-                             let move = read argument::Move
-                             
-                             putStrLn $ "Opponent made move: " ++ show move
-                             modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
-                             postGUIAsync $ widgetQueueDraw canvas
-                         --opponent quit game/disconnected             
-                         "quit" -> postGUISync $ do
-                             dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Opponent disconnected!"
-                             set dialog [windowTitle := "Disconnect"]
-                             result <- dialogRun dialog
-                             --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
-                             widgetDestroy window
-                         _ -> putStr command --either unhandled command or updateLobby (which isn't relevant when in game)
+                    if exit' == Just True 
+                       then return ()
+                       else do
+                           state <- readIORef stateRef
+                           if isYourTurn $ currentModel state 
+                              then handleAi
+                              else do
+                                  let maximizingPlayer = if player == White then False else True
+                                      stateAiMove = case getAiMove 3 maximizingPlayer (getState (currentModel state)) of
+                                                         Just move -> state { currentModel = executeMove move (currentModel state) }
+                                                         Nothing -> state --maybe add error message
+                                  putStrLn $ show $ getState $ currentModel stateAiMove
+                                  writeIORef stateRef stateAiMove
+                                  postGUIAsync $ widgetQueueDraw canvas
+                                  handleAi
+             in handleAi
+         NetworkChess _ player sock -> forkIO $
+             let handleNetwork = do
+                    exit' <- tryTakeMVar exit
+                    
+                    if exit' == Just True 
+                       then return ()
+                       else do
+                           (command, argument) <- listenToServer sock
+                           
+                           case command of
+                                --opponent joined game
+                                "start" -> do
+                                    modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = newNetworkChess Running player sock }
+                                    postGUIAsync $ widgetQueueDraw canvas
+                                --opponent made move
+                                "move" -> do
+                                    let move = read argument::Move
+                                    
+                                    putStrLn $ "Opponent made move: " ++ show move
+                                    modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
+                                    postGUIAsync $ widgetQueueDraw canvas
+                                --opponent quit game/disconnected             
+                                "quit" -> postGUISync $ do
+                                    dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Opponent disconnected!"
+                                    set dialog [windowTitle := "Disconnect"]
+                                    result <- dialogRun dialog
+                                    --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
+                                    widgetDestroy window
+                                _ -> putStr "" --either unhandled command or updateLobby (which isn't relevant when in game)
+                           handleNetwork
+             in handleNetwork
          _ -> forkIO $ return () --do nothing           
                
     widgetShowAll window
-    on window objectDestroy mainQuit
+    on window objectDestroy $ do
+        putMVar exit True
+        case model of
+             NetworkChess _ _ sock -> do
+                 sendMessage sock "quit"
+                 mainQuit
+             _ -> mainQuit
     mainGUI
     
 drawPiece :: Piece -> Cell -> Int -> Render ()

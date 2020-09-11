@@ -10,21 +10,21 @@ data PieceType = Pawn
                | Bishop
                | Queen
                | King
-               deriving (Eq,Read)
-               
-instance Show PieceType where
-    show Pawn = "P"
-    show Rook = "R"
-    show Knight = "N"
-    show Bishop = "B"
-    show Queen = "Q"
-    show King = "K"
-  
+               deriving (Eq,Show,Read)
+
 data Piece = Piece Player PieceType deriving (Eq)
     
 instance Show Piece where
-    show (Piece White pieceType) = show pieceType
-    show (Piece Black pieceType) = map toLower (show pieceType)
+    show (Piece White pieceType) = typeToString pieceType
+    show (Piece Black pieceType) = map toLower (typeToString pieceType)
+    
+typeToString :: PieceType -> String
+typeToString Pawn = "P"
+typeToString Rook = "R"
+typeToString Knight = "N"
+typeToString Bishop = "B"
+typeToString Queen = "Q"
+typeToString King = "K"
     
 getPlayer :: Piece -> Player
 getPlayer (Piece p _) = p

@@ -9,6 +9,8 @@ import Model.Phase
 import Model.Player
 import Model.Client
 
+import Control.Exception
+
 showMenu :: IO ()
 showMenu = do
      --TODO: exit handling close window etc.
@@ -38,7 +40,7 @@ showMenu = do
     
     on buttonHotseat buttonActivated $ do
         widgetDestroy window
-        setupBoard (newChess Running)
+        finally (setupBoard (newChess Running)) showMenu
     on buttonSingle buttonActivated $ do
         dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageQuestion ButtonsNone "Which color do you want to play as?"
         dialogAddButton dialog "White" (ResponseUser 0)
@@ -50,10 +52,10 @@ showMenu = do
         case result of
              ResponseUser 0 -> do
                  widgetDestroy window
-                 setupBoard (newAiChess Running White)
+                 finally (setupBoard (newAiChess Running White)) showMenu
              ResponseUser 1 -> do
                  widgetDestroy window
-                 setupBoard (newAiChess Running Black)
+                 finally (setupBoard (newAiChess Running Black)) showMenu
              ResponseUser _ -> error "unhandled response"
              _ -> return ()
              
@@ -61,7 +63,15 @@ showMenu = do
         txt <- entryGetText serverAdress
         sock <- main txt "5000"
         widgetDestroy window
-        showLobby sock
+        finally (showLobby sock) showMenu
+        `catch` (\e -> let err = show (e::IOException)
+                       in do
+                           dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Couldn't connect to given adress!"
+                           set dialog [windowTitle := "Connection failed"]
+                           
+                           dialogRun dialog
+                           
+                           widgetDestroy dialog)
         
     on window objectDestroy mainQuit
     widgetShowAll window

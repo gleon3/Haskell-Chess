@@ -25,21 +25,21 @@ main hostname port = withSocketsDo $ do
     return sock
     
 listenToServer :: Socket -> IO (String,String)
-listenToServer sock = forever $ do
-        clientIn <- recv sock 4096
+listenToServer sock = do
+    clientIn <- recv sock 4096
 
-        if not $ C.null clientIn 
-           then do
-               putStr "received: "
-               C.putStrLn clientIn
+    if not $ C.null clientIn 
+
+    then do
+        putStr "received: "
+        C.putStrLn clientIn
                
-                
-               let clientInString = C.unpack clientIn
-                   command = head $ words clientInString
-                   argument = concat $ tail $ words clientInString
+        let clientInString = C.unpack clientIn
+            command = head $ words clientInString
+            argument = concat $ tail $ words clientInString
                
-               return (command,argument)
-           else return ("","")
+        return (command,argument)
+    else return ("","")
                  
 waitForMessage :: Socket -> String -> IO (String,String)
 waitForMessage sock msg = do

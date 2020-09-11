@@ -27,6 +27,7 @@ main = withSocketsDo $ do
     -- bind the socket to the address and start listening
     bind sock (addrAddress serveraddr)
     listen sock maxConnections
+    putStrLn $ "Listening on port " ++ port
     
     acceptConnections sock
     
@@ -50,10 +51,8 @@ runConnection sock connectionsRef gamesRef = do
     --accept messages from client
     serverIn <- recv sock 4096
     
-    if (C.null serverIn) then putStrLn "dc"
-                         else return ()
-    
-    unless (C.null serverIn) $ do
+    if (not $ C.null serverIn)
+       then do
            putStr "received: "
            C.putStrLn serverIn
            
@@ -99,7 +98,7 @@ runConnection sock connectionsRef gamesRef = do
                     case getGame sock lobby of
                          Just game -> do 
                              sendOtherPlayer sock game serverIn
-                             putStr "sent to game"
+                             putStr "sent to game "
                              C.putStrLn serverIn
                          Nothing -> putStrLn "ERROR, something went wrong"
                 "quit" -> do
@@ -107,13 +106,22 @@ runConnection sock connectionsRef gamesRef = do
                     
                     case getGame sock lobby of
                          Just game -> do
-                             --modifyIORef gamesRef $ \games -> delete game games
+                             modifyIORef gamesRef $ \games -> delete game games
                              putStr "sent to game: quit" 
                              sendOtherPlayer sock game serverIn
+                             
+                             newLobby <- readIORef gamesRef
+                             
+                             C.putStrLn (C.pack $ "updateLobby " ++ show (lobbyToBool newLobby))
+                             sendToAllClients connectionsRef (C.pack $ "updateLobby " ++ show (lobbyToBool newLobby))
                          Nothing -> putStrLn $ "ERROR, something went wrong" ++ show sock ++ show lobby
                 _ -> putStrLn "Unhandled messageType"
 
            runConnection sock connectionsRef gamesRef
+       else do
+           putStrLn $ show sock ++ "disconnected"
+           modifyIORef connectionsRef $ \connections -> delete sock connections
+           
     
 sendToAllClients :: IORef [Socket] -> C.ByteString -> IO ()
 sendToAllClients connectionsRef message = (readIORef connectionsRef) >>= \acceptedConnections -> forM_ acceptedConnections (\connection -> sendAll connection message)
