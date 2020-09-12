@@ -28,6 +28,16 @@ isCheckmate player state = isChecked player state && (not $ canMove player state
 isStalemate :: Player -> GameState -> Bool
 isStalemate player state = (not $ isChecked player state) && (not $ canMove player state)
 
+--not enough material for a checkmate to occur
+insufficentMaterial :: GameState -> Bool
+insufficentMaterial state = (onlyKing White || onlyKingBishop White || onlyKingKnight White || onlyKing2Knight White) 
+                            && (onlyKing Black || onlyKingBishop Black || onlyKingKnight Black || onlyKing2Knight Black)
+    where pieces player = getPiecesOfPlayer player (gameField state)
+          onlyKing player = pieces player == [Piece player King]
+          onlyKingBishop player = (length (pieces player) == 2) && (elem (Piece player King) (pieces player)) && (elem (Piece player Bishop) (pieces player))
+          onlyKingKnight player = (length (pieces player) == 2) && (elem (Piece player King) (pieces player)) && (elem (Piece player Knight) (pieces player))
+          onlyKing2Knight player = (length (pieces player) == 3) && (elem (Piece player King) (pieces player)) && (amountOfPiece (Piece player Knight) (gameField state) == 2)
+
 --checks validity of move, if it is valid perform move, otherwise give error
 move :: Move -> GameState -> Either GameState MoveError
 move move state | currentPhase state /= Running = Right NoGameRunning
@@ -44,6 +54,7 @@ move move state | currentPhase state /= Running = Right NoGameRunning
 nextTurn :: GameState -> GameState
 nextTurn state | isCheckmate opponent state = state { currentPlayer = opponent, winner = Just (currentPlayer state), currentPhase = Finished } 
                | isStalemate opponent state = state { currentPlayer = opponent, winner = Nothing, currentPhase = Finished } 
+               | insufficentMaterial state = state { currentPlayer = opponent, winner = Nothing, currentPhase = Finished }
                | otherwise = state { currentPlayer = opponent, lastDoubleStep = Nothing }
     where opponent = getOpponentOf (currentPlayer state)
 

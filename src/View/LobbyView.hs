@@ -25,7 +25,7 @@ showLobby sock = do
     initGUI
     
     --keep track of when to exit loop in lobbyThread
-    exit <- newEmptyMVar
+    exit <- newIORef False
    
     window <- windowNew
     set window [windowTitle := "Lobby", containerBorderWidth := 0, windowDefaultHeight := 700, windowDefaultWidth := 700]
@@ -50,16 +50,14 @@ showLobby sock = do
              ResponseUser 0 -> do
                  putStrLn $ "new game as white" 
                  sendMessage sock "new White"
-                 putMVar exit True
-                 widgetHide window
-                 mainQuit
+                 writeIORef exit True
+                 widgetDestroy window
                  finally (setupBoard (newNetworkChess Waiting White sock)) (showLobby sock)
              ResponseUser 1 -> do
                  putStrLn $ "new game as black" 
                  sendMessage sock "new Black"
-                 putMVar exit True
-                 widgetHide window
-                 mainQuit
+                 writeIORef exit True
+                 widgetDestroy window
                  finally (setupBoard (newNetworkChess Waiting Black sock)) (showLobby sock)
              ResponseUser _ -> error "unhandled response"
              _ -> return ()
@@ -76,7 +74,7 @@ showLobby sock = do
     
     --keep listening for server lobby updating
     lobbyThread <- forkIO $ do
-        let listenToUpdateLobby = do
+        let handleUpdateLobby = do
                 (com, arg) <- waitForMessage sock "updateLobby"
             
                 --also keep track of index
@@ -103,9 +101,8 @@ showLobby sock = do
                     on whiteButton buttonActivated $ do
                         putStrLn $ "join game " ++ show i ++ " as white"
                         sendMessage sock ("join " ++ show i)
-                        putMVar exit True
-                        widgetHide window
-                        mainQuit
+                        writeIORef exit True
+                        widgetDestroy window
                         finally (setupBoard (newNetworkChess Running White sock)) (showLobby sock)
                         
                     
@@ -120,7 +117,7 @@ showLobby sock = do
                     on blackButton buttonActivated $ do
                         putStrLn $ "join game " ++ show i ++ " as black"
                         sendMessage sock ("join " ++ show i)
-                        putMVar exit True
+                        writeIORef exit True
                         widgetHide window
                         mainQuit
                         finally (setupBoard (newNetworkChess Running Black sock)) (showLobby sock)
@@ -129,15 +126,18 @@ showLobby sock = do
                     
                 postGUIAsync $ widgetShowAll lobbyBox
                 
-                exit' <- tryTakeMVar exit
+                exit' <- readIORef exit
+                yield
                 
-                if exit' == Just True then return ()
-                                      else listenToUpdateLobby
-        listenToUpdateLobby
+                if exit' then putStrLn "handeleUpdateLobby ended"
+                         else handleUpdateLobby
+        handleUpdateLobby
         
     on window objectDestroy $ do
-        putMVar exit True
-        shutdown sock ShutdownBoth
+        exit' <- readIORef exit
+        --exit' is true when somebody creates/joins game, if somebody closes window shutdown sock, so server can handle with disconnect
+        if not exit' then shutdown sock ShutdownBoth
+                     else return ()
         mainQuit
         
     widgetShowAll window

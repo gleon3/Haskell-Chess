@@ -32,9 +32,10 @@ setupBoard model = do
     initGUI
     window <- windowNew
 
-    exit <- newEmptyMVar
+    
     
     stateRef <- initGUIState model
+    exit <- newIORef False
     
     canvas <- drawingAreaNew
     
@@ -144,10 +145,11 @@ setupBoard model = do
     --keeps track of if game finished
     forkIO $
         let handleFinished = do
-                exit' <- tryTakeMVar exit
-    
-                if exit' == Just True 
-                   then return ()
+                exit' <- readIORef exit
+                yield
+                    
+                if exit'
+                   then putStrLn "ended handlefin"
                    else do
                        state <- readIORef stateRef
                        if (currentPhase $ getState $ currentModel state) /= Finished
@@ -170,17 +172,18 @@ setupBoard model = do
     case model of
          AiChess _ player -> forkIO $
              let handleAi = do
-                    exit' <- tryTakeMVar exit
+                    exit' <- readIORef exit
+                    yield
                     
-                    if exit' == Just True 
-                       then return ()
+                    if exit'
+                       then putStrLn "ended handleA"
                        else do
                            state <- readIORef stateRef
                            if isYourTurn $ currentModel state 
                               then handleAi
                               else do
                                   let maximizingPlayer = if player == White then False else True
-                                      stateAiMove = case getAiMove 3 maximizingPlayer (getState (currentModel state)) of
+                                      stateAiMove = case getAiMove 2 maximizingPlayer (getState (currentModel state)) of
                                                          Just move -> state { currentModel = executeMove move (currentModel state) }
                                                          Nothing -> state --maybe add error message
                                   putStrLn $ show $ getState $ currentModel stateAiMove
@@ -190,10 +193,11 @@ setupBoard model = do
              in handleAi
          NetworkChess _ player sock -> forkIO $
              let handleNetwork = do
-                    exit' <- tryTakeMVar exit
+                    exit' <- readIORef exit
+                    yield
                     
-                    if exit' == Just True 
-                       then return ()
+                    if exit'
+                       then putStrLn "ended handleNET"
                        else do
                            (command, argument) <- listenToServer sock
                            
@@ -216,14 +220,14 @@ setupBoard model = do
                                     result <- dialogRun dialog
                                     --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
                                     widgetDestroy window
-                                _ -> putStr "" --either unhandled command or updateLobby (which isn't relevant when in game)
+                                _ -> yield --either unhandled command or updateLobby (which isn't relevant when in game)
                            handleNetwork
              in handleNetwork
          _ -> forkIO $ return () --do nothing           
                
     widgetShowAll window
     on window objectDestroy $ do
-        putMVar exit True
+        writeIORef exit True
         case model of
              NetworkChess _ _ sock -> do
                  sendMessage sock "quit"

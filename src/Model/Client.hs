@@ -31,9 +31,6 @@ listenToServer sock = do
     if not $ C.null clientIn 
 
     then do
-        putStr "received: "
-        C.putStrLn clientIn
-               
         let clientInString = C.unpack clientIn
             command = head $ words clientInString
             argument = concat $ tail $ words clientInString
