@@ -13,7 +13,6 @@ import Control.Exception
 
 showMenu :: IO ()
 showMenu = do
-     --TODO: exit handling close window etc.
     initGUI
     window <- windowNew
     

@@ -28,7 +28,6 @@ initGUIState model = newIORef $ GUIState { selectedCell = Nothing, currentModel 
 
 setupBoard :: Model -> IO ()
 setupBoard model = do
-    --TODO: exit handling close window etc.
     initGUI
     window <- windowNew
 
@@ -79,24 +78,6 @@ setupBoard model = do
                      
                    --draw all pieces on the board
                    drawPieces (gameField (getState curModel)) cellSize
-                   
-                   --read new state and check if game ended after making move and give dialog
-                   {-liftIO (readIORef stateRef) >>= \GUIState { selectedCell = newCurrentSelected, currentModel = newCurModel } -> 
-                        if (currentPhase $ getState newCurModel) == Finished 
-                           then do 
-                               dialog <- liftIO $ messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageInfo ButtonsClose "Game over!"
-                               
-                               case winner $ getState newCurModel of
-                                    Just player -> liftIO $ messageDialogSetMarkup dialog ("Game over! " ++ show player ++ " has won!")
-                                    Nothing -> liftIO $ messageDialogSetMarkup dialog "Game over! It's a draw!"
-                                
-                               liftIO $ set dialog [windowTitle := "Game over"]
-                               result <- liftIO $ dialogRun dialog
-                               
-                               --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
-                               liftIO $ widgetDestroy window
-                               else return () -}
-            
                                                                 
     on canvas buttonPressEvent $ do
         liftIO (readIORef stateRef) >>= \GUIState { selectedCell = currentSelected, currentModel = curModel } ->
@@ -166,7 +147,6 @@ setupBoard model = do
                               
                               --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
                               widgetDestroy window
-                              handleFinished
         in handleFinished
     
     case model of
@@ -175,15 +155,18 @@ setupBoard model = do
                     exit' <- readIORef exit
                     yield
                     
-                    if exit'
-                       then putStrLn "ended handleA"
+                    state <- readIORef stateRef
+                    yield
+                    
+                    if exit' || (currentPhase $ getState (currentModel state)) == Finished
+                       then putStrLn "ended handleAi"
                        else do
-                           state <- readIORef stateRef
+                           
                            if isYourTurn $ currentModel state 
                               then handleAi
                               else do
                                   let maximizingPlayer = if player == White then False else True
-                                      stateAiMove = case getAiMove 2 maximizingPlayer (getState (currentModel state)) of
+                                      stateAiMove = case getAiMove 3 maximizingPlayer (getState (currentModel state)) of
                                                          Just move -> state { currentModel = executeMove move (currentModel state) }
                                                          Nothing -> state --maybe add error message
                                   putStrLn $ show $ getState $ currentModel stateAiMove
@@ -206,6 +189,7 @@ setupBoard model = do
                                 "start" -> do
                                     modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = newNetworkChess Running player sock }
                                     postGUIAsync $ widgetQueueDraw canvas
+                                    handleNetwork
                                 --opponent made move
                                 "move" -> do
                                     let move = read argument::Move
@@ -213,17 +197,24 @@ setupBoard model = do
                                     putStrLn $ "Opponent made move: " ++ show move
                                     modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
                                     postGUIAsync $ widgetQueueDraw canvas
+                                    handleNetwork
                                 --opponent quit game/disconnected             
                                 "quit" -> postGUISync $ do
-                                    dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Opponent disconnected!"
-                                    set dialog [windowTitle := "Disconnect"]
-                                    result <- dialogRun dialog
-                                    --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
-                                    widgetDestroy window
-                                _ -> yield --either unhandled command or updateLobby (which isn't relevant when in game)
-                           handleNetwork
+                                    state <- readIORef stateRef
+                                    yield
+                                    
+                                    if  (currentPhase $ getState (currentModel state)) /= Finished 
+                                       then do
+                                           dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Opponent disconnected!"
+                                           set dialog [windowTitle := "Disconnect"]
+                                           result <- dialogRun dialog
+                                           --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
+                                           widgetDestroy window
+                                       else return ()
+                                    putStrLn "ended handleNET"
+                                _ -> handleNetwork --either unhandled command or updateLobby (which isn't relevant when in game)
              in handleNetwork
-         _ -> forkIO $ return () --do nothing           
+         _ -> forkIO $ return () --do nothing         
                
     widgetShowAll window
     on window objectDestroy $ do

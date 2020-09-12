@@ -29,13 +29,12 @@ listenToServer sock = do
     clientIn <- recv sock 4096
 
     if not $ C.null clientIn 
-
-    then do
-        let clientInString = C.unpack clientIn
-            command = head $ words clientInString
-            argument = concat $ tail $ words clientInString
+       then do
+           let clientInString = C.unpack clientIn
+               command = head $ words clientInString
+               argument = concat $ tail $ words clientInString
                
-        return (command,argument)
+           return (command,argument)
     else return ("","")
                  
 waitForMessage :: Socket -> String -> IO (String,String)

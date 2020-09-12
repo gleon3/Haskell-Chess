@@ -107,18 +107,20 @@ runConnection sock connectionsRef gamesRef = do
                     case getGame sock lobby of
                          Just game -> do
                              modifyIORef gamesRef $ \games -> delete game games
-                             putStr "sent to game: quit" 
-                             sendOtherPlayer sock game serverIn
-                             
+                            
                              newLobby <- readIORef gamesRef
                              
                              C.putStrLn (C.pack $ "updateLobby " ++ show (lobbyToBool newLobby))
                              sendToAllClients connectionsRef (C.pack $ "updateLobby " ++ show (lobbyToBool newLobby))
-                         Nothing -> putStrLn $ "ERROR, something went wrong" ++ show sock ++ show lobby
+                             
+                             putStr "sent to game: quit" 
+                             sendOtherPlayer sock game serverIn
+                         Nothing -> putStrLn "game already deleted"
                 _ -> putStrLn "Unhandled messageType"
 
            runConnection sock connectionsRef gamesRef
        else do
+           sendAll sock (C.pack "dc") --send dc back to client so client can do cleanup actions
            putStrLn $ show sock ++ "disconnected"
            modifyIORef connectionsRef $ \connections -> delete sock connections
            
