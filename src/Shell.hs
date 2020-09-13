@@ -1,4 +1,4 @@
-module Shell ( startShell, printErrorMessage, stringToUpper ) where
+module Shell ( startShell ) where
 
 import Data.Char    
 
@@ -55,7 +55,6 @@ chooseGamemode = do
              chooseGamemode
     where newModel = newChess Running
           newAiModel = newAiChess Running
-          newNetworkModel = newNetworkChess Running
               
 chooseColor :: IO (Player)
 chooseColor = do
@@ -110,7 +109,6 @@ chooseAction model = if not $ isYourTurn model
                                               printErrorMessage "Ai coudln't move!"
                                               chooseAction model
                                  NetworkChess _ _ sock -> do
-                                     --TODO:listen to quit
                                      putStrLn "Wait for opponent to move..."
                                      (com,arg) <- waitForMessage sock "move"
                                 
@@ -194,13 +192,6 @@ chooseAction model = if not $ isYourTurn model
                                               else do
                                                   printErrorMessage "Invalid input!"
                                                   chooseAction model
-                     `catch` (\e -> do 
-                         let err = e::SomeException
-                         case model of
-                              NetworkChess _ _ sock -> do
-                                  sendMessage sock "quit"
-                                  shutdown sock ShutdownBoth)
-                                                
                                                 
 showHelp :: IO ()
 showHelp = do
@@ -240,7 +231,8 @@ serverLobby sock = do
     lobbyRef <- newIORef ([]::[(Bool,Bool)])
     
     --keep listening for server lobby updating
-    lobbyThread <- forkIO $ forever $ do        
+    lobbyThread <- forkIO $ forever $ do
+        --TODO:listen to quit
         (com, arg)<- waitForMessage sock "updateLobby"
         
         let newLobby = read arg::[(Bool,Bool)]

@@ -13,11 +13,10 @@ type Game = (Maybe Socket,Maybe Socket)
 
 type Games = [Game]
 
-maxConnections = 1
 port = "5000"
 
-main :: IO ()
-main = withSocketsDo $ do
+startServer :: IO ()
+startServer = withSocketsDo $ do
     addrinfos <- getAddrInfo (Just (defaultHints {addrFlags = [AI_PASSIVE]})) Nothing (Just port)
     let serveraddr = head addrinfos
     
@@ -26,7 +25,7 @@ main = withSocketsDo $ do
 
     -- bind the socket to the address and start listening
     bind sock (addrAddress serveraddr)
-    listen sock maxConnections
+    listen sock 1
     putStrLn $ "Listening on port " ++ port
     
     acceptConnections sock

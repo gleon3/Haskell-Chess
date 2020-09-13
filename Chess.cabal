@@ -43,6 +43,7 @@ library
       Model.Ai.PieceAmountAssessor
       Model.Ai.WinAssessor
       Model.Client
+      Model.Server
       View.LobbyView
       View.StartView
       View.ChessView
@@ -66,13 +67,36 @@ executable Chess-exe
   other-modules:
       Paths_Chess
   hs-source-dirs:
-      app
+      app/chess
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Chess
     , base >=4.7 && <5
-    , gtk3
   default-language: Haskell2010
+
+executable Shell-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_Chess
+  hs-source-dirs:
+      app/shell
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Chess
+    , base >=4.7 && <5
+  default-language: Haskell2010    
+  
+executable Server-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_Chess
+  hs-source-dirs:
+      app/server
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Chess
+    , base >=4.7 && <5
+  default-language: Haskell2010  
 
 test-suite Chess-test
   type: exitcode-stdio-1.0
