@@ -1,4 +1,4 @@
-module View.StartView where
+module View.StartView ( showMenu ) where
 
 import Control.Exception
 

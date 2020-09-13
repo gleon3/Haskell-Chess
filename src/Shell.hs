@@ -131,10 +131,10 @@ chooseAction model = if not $ isYourTurn model
                                 "CASTLE" -> do
                                     putStrLn "Which side do you want to castle to? [King/Queen]"
                                     kingside <- chooseCastle
-                                    case move (Castle kingside) model of
+                                    case move (Castle kingside (currentPlayer $ getState model)) model of
                                             Left newModel -> case model of
                                                                   NetworkChess _ _ sock -> do
-                                                                      sendMessage sock ("move " ++ show (Castle kingside))
+                                                                      sendMessage sock ("move " ++ toNotation (Castle kingside (currentPlayer $ getState model)))
                                                                       stateUpdate newModel
                                                                   _ -> stateUpdate newModel
                                             Right _ -> do 

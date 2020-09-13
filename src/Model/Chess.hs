@@ -80,8 +80,8 @@ executeMove (Move from to) state
 executeMove (DoubleStepMove from to) state = movePieceNormal from to state
 executeMove (EnPassant from to lastDoubleStep) state = state { gameField = remove lastDoubleStep (gameField $ movePieceNormal from to state ) }
 executeMove (PawnPromotion from to pieceType) state = state { gameField = set to (Just $ Piece (currentPlayer state) pieceType) $ remove from (gameField state) }
-executeMove (Castle kingside) state | kingside = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ rookMoveKingside $ kingMoveKingside state
-                                    | otherwise = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ rookMoveQueenside $ kingMoveQueenside state
+executeMove (Castle kingside _) state | kingside = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ rookMoveKingside $ kingMoveKingside state
+                                      | otherwise = removeCastle False (currentPlayer state) $ removeCastle True (currentPlayer state) $ rookMoveQueenside $ kingMoveQueenside state
     where 
         kingMoveKingside state = movePieceNormal (getBaseRowIndex (currentPlayer state), 4) (getBaseRowIndex (currentPlayer state), 6) state
         rookMoveKingside state = movePieceNormal (getBaseRowIndex (currentPlayer state), 7) (getBaseRowIndex (currentPlayer state), 5) state

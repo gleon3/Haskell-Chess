@@ -15,17 +15,6 @@ instance Show GameState
         show (GameState _ gameField Finished Nothing _ _ ) = "Thanks for playing! \nIt's a draw!\n" ++ toString gameField  
         show (GameState currentPlayer gameField _ _ _ castlingFlags) = "player to move: " ++ show currentPlayer ++ " " ++ castlingFlags ++ "\n" ++ toString gameField
         
-getCurrentPlayer :: GameState -> Player
-getCurrentPlayer state = currentPlayer state
-
-setCurrentPlayer :: GameState -> Player -> GameState
-setCurrentPlayer state player = state { currentPlayer = player }
-
-getField :: GameState -> GameField
-getField state = gameField state
-
-getWinner :: GameState -> Maybe Player
-getWinner state = winner state
 
 --Nothing = draw
 setWinner :: GameState -> Maybe Player -> GameState
@@ -62,8 +51,9 @@ setLastDoubleStep state move = state { lastDoubleStep = move }
 isAttacked :: Cell -> Player -> GameState -> Bool
 isAttacked cell player state = any (isAttackedByMove cell player state) [possibleMoves | from <- getCellsOfPlayer player (gameField state), possibleMoves <- getPossibleMovesForPieceNC from player state]
 
+--checks if a move attacks a cell
 isAttackedByMove :: Cell -> Player -> GameState -> Move -> Bool
-isAttackedByMove cell player state (Castle _) = False
+isAttackedByMove cell player state (Castle _ _) = False
 isAttackedByMove cell player state (PawnPromotion _ to _) = cell == to
 isAttackedByMove cell player state (Move _ to) = cell == to
 isAttackedByMove cell player state (EnPassant _ _ _) = False
@@ -71,7 +61,7 @@ isAttackedByMove cell player state (DoubleStepMove _ _) = False
 
 isChecked :: Player -> GameState -> Bool
 isChecked player state = case getCellOfPiece (Piece player King) (gameField state) of
-                              Nothing -> False --King doesn't exist, which should never happen, as game ends once king is in checkmate!
+                              Nothing -> error "king doesn't exist" --King doesn't exist, which should never happen, as game ends once king is in checkmate!
                               Just kingCell -> if isAttacked kingCell (getOpponentOf player) state then True
                                                                                                    else False 
 
@@ -83,12 +73,12 @@ getTypeOfMove from to state | fromIsPawn && getRow to == getBaseRowIndex (getOpp
                                                 Just cell -> if getRow to == getRow cell + getDirection (currentPlayer state) && getColumn to == getColumn cell then EnPassant from to cell
                                                                                                                                                                 else Move from to
                                                 _ -> Move from to 
-                            | fromIsKing && from == castleSource && to == castleTargetKingside = Castle True
-                            | fromIsKing && from == castleSource && to == castleTargetQueenside = Castle False
+                            | fromIsKing && from == castleSource && to == castleTargetKingside = Castle True (currentPlayer state)
+                            | fromIsKing && from == castleSource && to == castleTargetQueenside = Castle False (currentPlayer state)
                             | otherwise = Move from to
-    where castleSource = (getBaseRowIndex (currentPlayer state), 4)
-          castleTargetKingside = (getBaseRowIndex (currentPlayer state), 6)
-          castleTargetQueenside = (getBaseRowIndex (currentPlayer state), 2)
+    where castleSource = getSourceCell $ Castle True (currentPlayer state)
+          castleTargetKingside = getTargetCell $ Castle True (currentPlayer state)
+          castleTargetQueenside = getTargetCell $ Castle False (currentPlayer state)
           fromIsPawn = get from (gameField state) == Just (Piece (currentPlayer state) Pawn)
           fromIsKing = get from (gameField state) == Just (Piece (currentPlayer state) King)
 
@@ -171,9 +161,9 @@ castlingAvailable Black kingside state = if kingside then elem 'k' (getCastlingF
 --does not check if king would castle into check!
 getCastlingMoves :: Player -> GameState -> [Move]
 getCastlingMoves player state | isChecked player state = []
-                              | canCastleKingside && canCastleQueenside = [Castle True, Castle False]
-                              | canCastleKingside = [Castle True]
-                              | canCastleQueenside = [Castle False]
+                              | canCastleKingside && canCastleQueenside = [Castle True player, Castle False player]
+                              | canCastleKingside = [Castle True player]
+                              | canCastleQueenside = [Castle False player]
                               | otherwise = []
     where canCastleKingside = castlingAvailableKingside && canMoveThroughKingside && not pathAttackedKingside
           canCastleQueenside = castlingAvailableQueenside && canMoveThroughQueenside && not pathAttackedQueenside

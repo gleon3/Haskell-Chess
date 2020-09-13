@@ -1,6 +1,4 @@
-module View.LobbyView where
-
-import Graphics.UI.Gtk
+module View.LobbyView ( showLobby ) where
 
 import Control.Concurrent
 import Control.Exception
@@ -8,6 +6,8 @@ import Control.Monad
 
 import qualified Data.ByteString.Char8 as C
 import Data.IORef
+
+import Graphics.UI.Gtk
 
 import Model.Network.Client
 import Model.Model

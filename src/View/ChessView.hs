@@ -1,4 +1,4 @@
-module View.ChessView where
+module View.ChessView ( setupBoard ) where
 
 import Control.Monad
 import Control.Concurrent
@@ -32,8 +32,6 @@ setupBoard model = do
     initGUI
     window <- windowNew
 
-    
-    
     stateRef <- initGUIState model
     exit <- newIORef False
     
