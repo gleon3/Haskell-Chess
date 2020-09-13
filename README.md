@@ -5,7 +5,6 @@ This projects consists of a chess programm that was made in haskell. It supports
 ## Dependencies
 
 The project requires [gtk3](https://www.gtk.org/docs/installations/).
-It was tested on Windows 10 version 1903 and Linux Mint 19.3 Cinnamon.
 
 The project is built with [stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 
