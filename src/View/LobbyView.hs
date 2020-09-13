@@ -2,20 +2,22 @@ module View.LobbyView where
 
 import Graphics.UI.Gtk
 
-import Model.Client
-import Model.Model
-import Model.Player
-import Model.Phase
-import View.ChessView
-
 import Control.Concurrent
+import Control.Exception
 import Control.Monad
+
+import qualified Data.ByteString.Char8 as C
 import Data.IORef
+
+import Model.Network.Client
+import Model.Model
+import Model.Phase
+import Model.Player
+
 import Network.Socket
 import Network.Socket.ByteString
-import qualified Data.ByteString.Char8 as C
 
-import Control.Exception
+import View.ChessView
 
 showLobby :: Socket -> IO ()
 showLobby sock = do

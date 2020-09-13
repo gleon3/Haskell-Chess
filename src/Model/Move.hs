@@ -18,13 +18,13 @@ data Move = Move Cell Cell
 --    show (Castle True) = "O-O"
 --    show (Castle False) = "O-O-O"    
     
-notation :: Move -> String
-notation (Move from to) = formatCell from ++ formatCell to
-notation (DoubleStepMove from to) = formatCell from ++ formatCell to
-notation (EnPassant from to _) = formatCell from ++ formatCell to ++ "e"
-notation (PawnPromotion from to pieceType) = formatCell from ++ formatCell to ++ show pieceType
-notation (Castle True) = "O-O"
-notation (Castle False) = "O-O-O"   
+toNotation :: Move -> String
+toNotation (Move from to) = formatCell from ++ formatCell to
+toNotation (DoubleStepMove from to) = formatCell from ++ formatCell to
+toNotation (EnPassant from to _) = formatCell from ++ formatCell to ++ "e"
+toNotation (PawnPromotion from to pieceType) = formatCell from ++ formatCell to ++ show pieceType
+toNotation (Castle True) = "O-O"
+toNotation (Castle False) = "O-O-O"   
 
 getSourceCell :: Move -> Cell
 getSourceCell (Move from _) = from

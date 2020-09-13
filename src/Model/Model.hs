@@ -1,10 +1,10 @@
 module Model.Model where
 
-import Model.Move
 import Model.Cell
 import Model.GameState
-import Model.Player
+import Model.Move
 import Model.Phase
+import Model.Player
 
 import Network.Socket
 

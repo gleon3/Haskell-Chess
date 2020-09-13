@@ -5,7 +5,6 @@ import Data.Array
 import Model.Cell
 import Model.Piece
 import Model.Player
-import Model.Piece
 
 --(reihe, spalte)
 type GameField = Array Cell (Maybe Piece)

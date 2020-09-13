@@ -1,25 +1,26 @@
 module View.ChessView where
 
-import Graphics.Rendering.Cairo
-import Graphics.Rendering.Cairo.SVG
-import Graphics.UI.Gtk hiding (rectangle,get)
-
-import Model.Model
-import Model.AiChess
-import Model.GameState
-import Model.GameField hiding (set)
-import Model.Phase
-import Model.Move
-import Model.Cell
-import Model.Piece
-import Model.Player
-import Model.Client
 import Control.Monad
 import Control.Concurrent
 
 import Data.Array
 import Data.List
 import Data.IORef
+
+import Graphics.Rendering.Cairo
+import Graphics.Rendering.Cairo.SVG
+import Graphics.UI.Gtk hiding (rectangle,get)
+
+import Model.AiChess
+import Model.Cell
+import Model.GameField hiding (set)
+import Model.GameState
+import Model.Model
+import Model.Move
+import Model.Network.Client
+import Model.Phase
+import Model.Piece
+import Model.Player
 
 data GUIState = GUIState { selectedCell :: Maybe Cell, currentModel :: Model }
 

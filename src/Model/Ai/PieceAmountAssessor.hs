@@ -1,10 +1,9 @@
 module Model.Ai.PieceAmountAssessor where
 
-import Model.GameState
 import Model.GameField
+import Model.GameState
 import Model.Piece
 import Model.Player
-import Model.Chess
 
 computeValue :: GameState -> Int
 computeValue state = 10 * (amountOfPiece (Piece White Pawn) (gameField state) - amountOfPiece (Piece Black Pawn) (gameField state))

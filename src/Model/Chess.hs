@@ -1,12 +1,12 @@
 module Model.Chess where
 
-import Model.GameState
-import Model.GameField
-import Model.Move
-import Model.Player
 import Model.Cell
-import Model.Piece
+import Model.GameField
+import Model.GameState
 import Model.Phase
+import Model.Piece
+import Model.Player
+import Model.Move
 
 data MoveError = InvalidMove
                | NoGameRunning

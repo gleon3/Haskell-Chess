@@ -1,25 +1,23 @@
 module Shell ( startShell ) where
 
-import Data.Char    
-
-import Model.Model
-import Model.Player
-import Model.GameState
-import Model.Phase
-import Model.Move
-import Model.Cell
-import Model.Piece
-import Model.GameField
-import Model.AiChess
-
-import Model.Client
-
-import Data.IORef
 import Control.Monad
 import Control.Concurrent
-import Network.Socket
 
-import Control.Exception
+import Data.Char    
+import Data.IORef
+
+import Model.AiChess
+import Model.Cell
+import Model.GameField hiding (set)
+import Model.GameState
+import Model.Model
+import Model.Move
+import Model.Network.Client
+import Model.Phase
+import Model.Piece
+import Model.Player
+
+import Network.Socket
 
 import System.IO
 
@@ -29,7 +27,7 @@ port = "5000"
 startShell :: IO ()
 startShell = do 
     hSetBuffering stdout NoBuffering
-    putStrLn "Choose gamemode! [Hotseat/Single/Network]. To quit type nothing!"
+    putStrLn "Choose gamemode! [Hotseat/Single]. To quit type nothing!"
     chooseGamemode
     
 chooseGamemode :: IO ()
@@ -43,12 +41,13 @@ chooseGamemode = do
              player <- chooseColor
              stateUpdate $ newAiModel player
          "NETWORK" -> do
-             putStrLn "Input ip to join!"
-             input <- getLine
+             --putStrLn "Input ip to join!"
+             --input <- getLine
              
-             sock <- main input "5000"
+             --sock <- main input "5000"
              
-             serverLobby sock
+             --serverLobby sock
+             putStrLn "Not fully supported yet. You can play on GUI."
          "" -> putStrLn "Bye!"
          _ -> do
              printErrorMessage "Invalid input"
@@ -103,7 +102,7 @@ chooseAction model = if not $ isYourTurn model
                                      let maximizingPlayer = if player == White then False else True --player is white -> ai is black and ai is minimizing
                                      case getAiMove 3 maximizingPlayer (getState model) of
                                           Just move -> do
-                                              putStrLn $ "Ai move: " ++ show move
+                                              putStrLn $ "Ai move: " ++ toNotation move
                                               stateUpdate $ executeMove move model
                                           Nothing -> do
                                               printErrorMessage "Ai coudln't move!"
@@ -114,7 +113,7 @@ chooseAction model = if not $ isYourTurn model
                                 
                                      let move = read arg::Move
                                      
-                                     putStrLn $ "Opponent made move: " ++ show move
+                                     putStrLn $ "Opponent made move: " ++ toNotation move
                                      stateUpdate $ executeMove move model
                         else do
                             putStr "It's your turn! Type ? for help> "
@@ -127,7 +126,7 @@ chooseAction model = if not $ isYourTurn model
                                               NetworkChess _ _ sock -> close sock >> startShell
                                               _ -> startShell
                                 "MOVES" -> do
-                                    putStrLn $ show $ getLegalMoves model
+                                    printMoves $ getLegalMoves model
                                     chooseAction model
                                 "CASTLE" -> do
                                     putStrLn "Which side do you want to castle to? [King/Queen]"
@@ -184,7 +183,7 @@ chooseAction model = if not $ isYourTurn model
                                               then let cell = parseCell $ fst moveInputCells
                                                    in if isWithinBounds cell 
                                                           then do
-                                                              putStrLn $ show $ getPossibleMovesForPiece cell model
+                                                              printMoves $ getPossibleMovesForPiece cell model
                                                               chooseAction model
                                                           else do
                                                               printErrorMessage "Invalid input!"
@@ -324,3 +323,6 @@ printErrorMessage msg = putStrLn (error_msg ++ msg)
 
 stringToUpper :: String -> String
 stringToUpper string = map toUpper string
+
+printMoves :: [Move] -> IO ()
+printMoves moves = forM_ moves (\move -> putStr $ toNotation move ++ " ") >> putStrLn ""

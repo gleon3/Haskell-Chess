@@ -1,22 +1,22 @@
-module Model.Server where
+module Model.Network.Server where
+
+import qualified Data.ByteString.Char8 as C
+import Data.List
+import Data.Maybe
+import Data.IORef
+
+import Control.Concurrent
+import Control.Monad
 
 import Network.Socket
 import Network.Socket.ByteString
-import Control.Concurrent
-import Control.Monad
-import qualified Data.ByteString.Char8 as C
-import Data.IORef
-import Data.Maybe
-import Data.List
 
 type Game = (Maybe Socket,Maybe Socket)
 
 type Games = [Game]
 
-port = "5000"
-
-startServer :: IO ()
-startServer = withSocketsDo $ do
+startServer :: String -> IO ()
+startServer port = withSocketsDo $ do
     addrinfos <- getAddrInfo (Just (defaultHints {addrFlags = [AI_PASSIVE]})) Nothing (Just port)
     let serveraddr = head addrinfos
     

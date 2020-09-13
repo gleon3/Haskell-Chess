@@ -1,15 +1,16 @@
 module View.StartView where
 
+import Control.Exception
+
 import Graphics.UI.Gtk
+
+import Model.Network.Client
+import Model.Phase
+import Model.Player
+import Model.Model
 
 import View.ChessView
 import View.LobbyView
-import Model.Model
-import Model.Phase
-import Model.Player
-import Model.Client
-
-import Control.Exception
 
 showMenu :: IO ()
 showMenu = do

@@ -1,8 +1,8 @@
 module Model.AiChess where
 
-import Model.Move
-import Model.GameState
 import Model.Chess
+import Model.GameState
+import Model.Move
 
 import Model.Ai.StateAssessor
                                          

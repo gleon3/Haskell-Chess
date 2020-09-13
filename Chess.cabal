@@ -29,6 +29,7 @@ source-repository head
 library
   exposed-modules:
       ChessMain
+      Shell
       Model.Cell
       Model.GameField
       Model.GameState
@@ -42,12 +43,11 @@ library
       Model.Ai.StateAssessor
       Model.Ai.PieceAmountAssessor
       Model.Ai.WinAssessor
-      Model.Client
-      Model.Server
+      Model.Network.Client
+      Model.Network.Server
       View.LobbyView
       View.StartView
       View.ChessView
-      Shell
   other-modules:
       Paths_Chess
   hs-source-dirs:

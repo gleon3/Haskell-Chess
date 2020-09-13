@@ -1,6 +1,8 @@
 module Main where
 
-import Model.Server
+import Model.Network.Server
+
+port = "5000"
 
 main :: IO ()
-main = startServer
+main = startServer port

@@ -1,24 +1,19 @@
-module Model.Client where
+module Model.Network.Client where
+
+import qualified Data.ByteString.Char8 as C
 
 import Network.Socket
 import Network.Socket.ByteString
 
-import qualified Data.ByteString.Char8 as C
-
-import Control.Concurrent
-import Control.Monad
-
---TODO: error handling
 main :: HostName -> String -> IO (Socket)
 main hostname port = withSocketsDo $ do
     --create server address
     addrinfos <- getAddrInfo Nothing (Just hostname) (Just port)
     let serveraddr = head addrinfos
 
-    --create a TCP socket for the incoming data
+    --create TCP socket for incoming data
     sock <- socket (addrFamily serveraddr) Stream defaultProtocol
-    setSocketOption sock KeepAlive 1
-
+    
     --connect to server
     connect sock (addrAddress serveraddr)
     

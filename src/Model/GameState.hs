@@ -1,11 +1,11 @@
 module Model.GameState where
 
 import Model.Cell
-import Model.Move
-import Model.Player
-import Model.Phase
 import Model.GameField
+import Model.Move
+import Model.Phase
 import Model.Piece
+import Model.Player
 
 data GameState = GameState { currentPlayer :: Player, gameField :: GameField, currentPhase :: Phase, winner :: Maybe Player, lastDoubleStep :: Maybe Cell, castlingFlags :: String } deriving (Eq)
 
