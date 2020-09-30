@@ -34,10 +34,8 @@ setState newState (AiChess state player) = AiChess newState player
 setState newState (NetworkChess state player socket) = NetworkChess newState player socket
 
 isYourTurn :: Model -> Bool
-isYourTurn (AiChess state player) = if currentPlayer state == player then True
-                                                                     else False
-isYourTurn (NetworkChess state player _) = if currentPlayer state == player then True
-                                                                            else False
+isYourTurn (AiChess state player) = currentPlayer state == player
+isYourTurn (NetworkChess state player _) = currentPlayer state == player
 isYourTurn _ = True
 
 getPossibleMovesForPiece :: Cell -> Model -> [Move]

@@ -99,8 +99,8 @@ chooseAction model = if not $ isYourTurn model
                             case model of
                                  AiChess _ player -> do
                                      putStrLn "Ai thinking..."
-                                     let maximizingPlayer = if player == White then False else True --player is white -> ai is black and ai is minimizing
-                                     case getAiMove 3 maximizingPlayer (getState model) of
+                                     let maximizingPlayer = not $ player == White --player is white -> ai is black and ai is minimizing
+                                     case getAiMove 2 maximizingPlayer (getState model) of
                                           Just move -> do
                                               putStrLn $ "Ai move: " ++ toNotation move
                                               stateUpdate $ executeMove move model

@@ -1,7 +1,9 @@
 module View.ChessView ( setupBoard ) where
 
-import Control.Monad
 import Control.Concurrent
+import Control.Error 
+import Control.Monad
+import Control.Monad.Trans
 
 import Data.Array
 import Data.List
@@ -123,96 +125,94 @@ setupBoard model = do
                else return False
   
     --keeps track of if game finished
-    forkIO $
-        let handleFinished = do
-                exit' <- readIORef exit
-                yield
-                    
-                if exit'
-                   then putStrLn "ended handlefin"
-                   else do
-                       state <- readIORef stateRef
-                       if (currentPhase $ getState $ currentModel state) /= Finished
-                          then handleFinished
-                          else postGUISync $ do
-                              dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageInfo ButtonsClose "Game over!"
-                              
-                              case winner $ getState $ currentModel state of
-                                   Just player -> messageDialogSetMarkup dialog ("Game over! " ++ show player ++ " has won!")
-                                   Nothing -> messageDialogSetMarkup dialog "Game over! It's a draw!"
+    forkIO $ do
+        runMaybeT $ forever $ do
+            exit' <- lift $ readIORef exit
+            lift $ yield
+            
+            if exit'
+               then mzero
+               else do
+                   state <- lift $ readIORef stateRef
+                   if (currentPhase $ getState $ currentModel state) /= Finished
+                      then return ()
+                      else lift $ postGUISync $ do
+                          dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageInfo ButtonsClose "Game over!"
+                          
+                          case winner $ getState $ currentModel state of
+                               Just player -> messageDialogSetMarkup dialog ("Game over! " ++ show player ++ " has won!")
+                               Nothing -> messageDialogSetMarkup dialog "Game over! It's a draw!"
                                    
-                              set dialog [windowTitle := "Game over"]
-                              result <- dialogRun dialog
+                          set dialog [windowTitle := "Game over"]
+                          result <- dialogRun dialog
                               
-                              --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
-                              widgetDestroy window
-        in handleFinished
+                          --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
+                          widgetDestroy window
+        putStrLn "ended handleFin"
     
     case model of
-         AiChess _ player -> forkIO $
-             let handleAi = do
-                    exit' <- readIORef exit
-                    yield
+         AiChess _ player -> forkIO $ do
+             runMaybeT $ forever $ do
+                    exit' <- lift $ readIORef exit
+                    lift $ yield
                     
-                    state <- readIORef stateRef
-                    yield
+                    state <- lift $ readIORef stateRef
+                    lift $ yield
                     
                     if exit' || (currentPhase $ getState (currentModel state)) == Finished
-                       then putStrLn "ended handleAi"
-                       else do
-                           
+                       then mzero
+                       else lift $ do
                            if isYourTurn $ currentModel state 
-                              then handleAi
+                              then return ()
                               else do
-                                  let maximizingPlayer = if player == White then False else True
-                                      stateAiMove = case getAiMove 3 maximizingPlayer (getState (currentModel state)) of
+                                  let maximizingPlayer = not $ player == White
+                                      stateAiMove = case getAiMove 2 maximizingPlayer (getState (currentModel state)) of
                                                          Just move -> state { currentModel = executeMove move (currentModel state) }
                                                          Nothing -> state --maybe add error message
                                   putStrLn $ show $ getState $ currentModel stateAiMove
                                   writeIORef stateRef stateAiMove
                                   postGUIAsync $ widgetQueueDraw canvas
-                                  handleAi
-             in handleAi
-         NetworkChess _ player sock -> forkIO $
-             let handleNetwork = do
-                    exit' <- readIORef exit
-                    yield
+             putStrLn "ended handleAi"
+                                  
+         NetworkChess _ player sock -> forkIO $ do
+             runMaybeT $ forever $ do
+                    exit' <- lift $ readIORef exit
+                    lift $ yield
                     
                     if exit'
-                       then putStrLn "ended handleNET"
+                       then mzero
                        else do
-                           (command, argument) <- listenToServer sock
+                           (command, argument) <- lift $ listenToServer sock
                            
                            case command of
                                 --opponent joined game
-                                "start" -> do
+                                "start" -> lift $ do
                                     modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = newNetworkChess Running player sock }
                                     postGUIAsync $ widgetQueueDraw canvas
-                                    handleNetwork
                                 --opponent made move
-                                "move" -> do
+                                "move" -> lift $ do
                                     let move = read argument::Move
                                     
                                     putStrLn $ "Opponent made move: " ++ show move
                                     modifyIORef stateRef $ \state -> state { selectedCell = Nothing, currentModel = executeMove move (currentModel state) }
                                     postGUIAsync $ widgetQueueDraw canvas
-                                    handleNetwork
                                 --opponent quit game/disconnected             
-                                "quit" -> postGUISync $ do
-                                    state <- readIORef stateRef
-                                    yield
-                                    
-                                    if  (currentPhase $ getState (currentModel state)) /= Finished 
-                                       then do
-                                           dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Opponent disconnected!"
-                                           set dialog [windowTitle := "Disconnect"]
-                                           result <- dialogRun dialog
-                                           --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
-                                           widgetDestroy window
-                                       else return ()
-                                    putStrLn "ended handleNET"
-                                _ -> handleNetwork --either unhandled command or updateLobby (which isn't relevant when in game)
-             in handleNetwork
+                                "quit" -> do 
+                                    lift $ postGUISync $ do
+                                        state <- readIORef stateRef
+                                        yield
+                                        
+                                        if  (currentPhase $ getState (currentModel state)) /= Finished 
+                                        then do
+                                            dialog <- messageDialogNew (Just window) [DialogDestroyWithParent, DialogModal] MessageError ButtonsClose "Opponent disconnected!"
+                                            set dialog [windowTitle := "Disconnect"]
+                                            result <- dialogRun dialog
+                                            --action to be taken after clicked dialog, in this case destroy the window, which also destroys the dialog!
+                                            widgetDestroy window
+                                        else return ()
+                                    mzero
+                                _ -> return () --either unhandled command or updateLobby (which isn't relevant when in game)
+             putStrLn "ended serverListen"
          _ -> forkIO $ return () --do nothing         
                
     widgetShowAll window

@@ -62,8 +62,7 @@ isAttackedByMove cell player state (DoubleStepMove _ _) = False
 isChecked :: Player -> GameState -> Bool
 isChecked player state = case getCellOfPiece (Piece player King) (gameField state) of
                               Nothing -> error "king doesn't exist" --King doesn't exist, which should never happen, as game ends once king is in checkmate!
-                              Just kingCell -> if isAttacked kingCell (getOpponentOf player) state then True
-                                                                                                   else False 
+                              Just kingCell -> isAttacked kingCell (getOpponentOf player) state
 
 --gets the type of move for a move from a cell to another cell, even for absurd moves, which would be sorted out in move function! 
 getTypeOfMove :: Cell -> Cell -> GameState -> Move
@@ -116,8 +115,7 @@ getFree (h:t) field | isFree h field = [h] ++ getFree t field
 
 isOpponent :: Cell -> Player -> GameField -> Bool
 isOpponent cell player field = case get cell field of
-                                    Just piece -> if getPlayer piece == getOpponentOf player then True
-                                                                                             else False
+                                    Just piece -> getPlayer piece == getOpponentOf player
                                     Nothing -> False
   
 --gets all cells that are reachable in given list of cells 

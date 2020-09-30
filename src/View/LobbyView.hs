@@ -1,8 +1,10 @@
 module View.LobbyView ( showLobby ) where
 
 import Control.Concurrent
+import Control.Error 
 import Control.Exception
 import Control.Monad
+import Control.Monad.Trans
 
 import qualified Data.ByteString.Char8 as C
 import Data.IORef
@@ -70,11 +72,11 @@ showLobby sock = do
     scrolledWindowAddWithViewport scrollWin lobbyBox
     
     --keep listening for server lobby updating
-    lobbyThread <- forkIO $
-        let handleUpdateLobby = do
-                (com, arg) <- listenToServer sock
+    lobbyThread <- forkIO $ do
+        runMaybeT $ forever $ do
+                (com, arg) <- lift $ listenToServer sock
                 
-                putStrLn $ com ++ " " ++ arg
+                lift $ putStrLn $ com ++ " " ++ arg
                 
                 case com of
                      "updateLobby" -> do
@@ -83,11 +85,11 @@ showLobby sock = do
                              newLobby' = zip [1..] newLobby
                            
                          --remove old lobby
-                         oldLobby <- containerGetChildren lobbyBox
-                         forM_ oldLobby (\game -> containerRemove lobbyBox game)
+                         oldLobby <- lift $ containerGetChildren lobbyBox
+                         lift $ forM_ oldLobby (\game -> containerRemove lobbyBox game)
                          
                          --add new lobby, doesn't show running games
-                         forM_ newLobby' (\(i, (white,black)) -> unless (white && black) $ do
+                         lift $ forM_ newLobby' (\(i, (white,black)) -> unless (white && black) $ do
                              gameBox <- hBoxNew True 10
                              
                              whiteButton <- buttonNew
@@ -122,16 +124,16 @@ showLobby sock = do
                              
                              postGUIAsync $ boxPackStart lobbyBox gameBox PackNatural 0)
                              
-                         postGUIAsync $ widgetShowAll lobbyBox
+                         lift $ postGUIAsync $ widgetShowAll lobbyBox
                          
-                         exit' <- readIORef exit
-                         yield
+                         exit' <- lift $ readIORef exit
+                         lift $ yield
                          
-                         if exit' then putStrLn "updateLobbyThread ended"
-                                  else handleUpdateLobby
-                     "dc" -> putStrLn "updateLobbyThread ended" --disconnect from server
+                         when exit' $ mzero
+                     "dc" -> mzero  --disconnect from server
                      _ -> error "ERROR, GOT START, MOVE, QUIT MESSAGE WHILE NOT BEING IN GAME"
-        in handleUpdateLobby
+        putStrLn "ended updateLobby"
+                            
         
     --requests the current lobby from server, so the lobby can be updated the first time client joins lobby
     sendMessage sock "requestLobby"

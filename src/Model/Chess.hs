@@ -20,8 +20,8 @@ newGame :: Phase -> GameState
 newGame startingPhase = GameState { currentPlayer = White, gameField = setInitialPieces, currentPhase = startingPhase, winner = Nothing, lastDoubleStep = Nothing, castlingFlags = "KQkq" }
 
 canMove :: Player -> GameState -> Bool
-canMove player state = if getLegalMovesForPlayer player state == [] then False
-                                                                    else True
+canMove player state = not $ getLegalMovesForPlayer player state == []
+
 isCheckmate :: Player -> GameState -> Bool
 isCheckmate player state = isChecked player state && (not $ canMove player state)
 
@@ -103,5 +103,4 @@ getPossibleMovesForPiece player from state | currentPhase state /= Running = [] 
                                                     _ -> [] --when given cell is not of player, there shouldn't be moves possible
                                                     
 movePutsInCheck :: Player -> Move -> GameState -> Bool
-movePutsInCheck player move state = if isChecked player (executeMove move state) then True
-                                                                                 else False
+movePutsInCheck player move state = isChecked player (executeMove move state)

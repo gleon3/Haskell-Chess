@@ -144,8 +144,7 @@ joinGame (Just x, Nothing) sock = (Just x, Just sock)
 joinGame (Nothing, Just x) sock = (Just sock, Just x)
 
 isInGame :: Socket -> Game -> Bool
-isInGame sock (x,y) = if x == Just sock || y == Just sock then True
-                                                          else False
+isInGame sock (x,y) = x == Just sock || y == Just sock
                                                           
 getGame :: Socket -> Games -> Maybe Game
 getGame sock [] = Nothing

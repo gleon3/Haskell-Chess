@@ -44,9 +44,8 @@ amountOfPiece piece field = length [ pc | (i, pc) <- (assocs $ field), pc == Jus
 isCellOfPlayer :: Cell -> Player -> GameField -> Bool
 isCellOfPlayer cell player field = case (get cell field) of
                                         Nothing -> False
-                                        Just piece -> if (getPlayer piece == player) then True
-                                                                                     else False
-
+                                        Just piece -> getPlayer piece == player
+                                        
 getCellOfPiece :: Piece -> GameField -> Maybe Cell
 getCellOfPiece piece field | x == [] = Nothing
                            | otherwise = Just (head x)

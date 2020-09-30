@@ -17,7 +17,7 @@ toNotation (DoubleStepMove from to) = formatCell from ++ formatCell to
 toNotation (EnPassant from to _) = formatCell from ++ formatCell to ++ "e"
 toNotation (PawnPromotion from to pieceType) = formatCell from ++ formatCell to ++ show pieceType
 toNotation (Castle True _) = "O-O"
-toNotation (Castle False _) = "O-O-O"   
+toNotation (Castle False _) = "O-O-O"  
 
 getSourceCell :: Move -> Cell
 getSourceCell (Move from _) = from
